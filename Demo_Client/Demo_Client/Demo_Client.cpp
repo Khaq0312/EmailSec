@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "Demo_Client.h"
 #include "afxsock.h"
+#include "message.h"
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -59,46 +60,30 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		return 1;
 	}
 
-	const char* helo = "HELO";
-	send(client, helo, sizeof(helo), 0);
-
 	char buffer[BUF_SIZE];
-	int message = recv(client, buffer, BUF_SIZE, 0);
-	buffer[message] = '\0';
-	cout << buffer << std::endl;
-	int option;
+	int recvMessage = recv(client, buffer, BUF_SIZE, 0);
+	buffer[recvMessage] = '\0';
+	cout << "S: " << buffer;
+
+	string input;
 	do {
+		cout << "C: ";
+		cin >> input;
+		send(client, input.c_str(), input.length(), 0);
 		
-		/*int message = recv(client, buffer, BUF_SIZE, 0);
-		if (message > 0) {
-			buffer[message] = '\0';
-			std::cout << buffer << std::endl;
-		}*/
-		cout << "continue? (0:No, 1: MAIL): ";
-		cin >> option;
-		if (option != 0)
+		recvMessage = recv(client, buffer, BUF_SIZE, 0);
+		buffer[recvMessage] = '\0';
+		if (string(buffer) == reply_code[13])
 		{
-			send(client, mailFromCommand, strlen(mailFromCommand), 0);
-			send(client, rcptToCommand, strlen(rcptToCommand), 0);
-			send(client, dataCommand, strlen(dataCommand), 0);
+			cout << "S: " << reply_code[13];
+			break;
+		}
+		if (recvMessage != 0)
+		{
+			cout << "S: " << buffer;
 		}
 		
-		/*
-		else if (message == 0) {
-			std::cerr << "Connection closing..." << std::endl;
-		}
-		else {
-			std::cerr << "recv failed with error: " << WSAGetLastError() << std::endl;}*/
-		
-	} while (option != 0);
-
-	
-	const char* quit = "0";
-	send(client, quit, strlen(quit), 0);
-
-	message = recv(client, buffer, BUF_SIZE, 0);
-	buffer[message] = '\0';
-	cout << buffer << endl;
+	} while ((string)input != "QUIT");
 
 	closesocket(client);
 	WSACleanup();

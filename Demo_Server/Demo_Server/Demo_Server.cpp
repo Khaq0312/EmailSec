@@ -4,7 +4,7 @@
 #include "Demo_Server.h"
 #include "afxsock.h"
 #include "module.h"
-
+#include "message.h"
 #pragma comment(lib, "Ws2_32.lib")
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -20,57 +20,44 @@ CWinApp theApp;
 
 using namespace std;
 
+int reply(char buffer[], SOCKET clientSocket) {
+	
+	if (string(buffer) == "HELO") {
+		send(clientSocket, reply_code[6], strlen(reply_code[6]), 0);
+		return 1;
+	}
+	else if(string(buffer) == "QUIT")
+	{
+		send(clientSocket, reply_code[5], strlen(reply_code[5]), 0);
+	}
+	else
+	{
+		send(clientSocket, reply_code[13], strlen(reply_code[13]), 0);
+	}
+	return 0;
+}
 DWORD WINAPI function_cal(LPVOID arg)
 {
 	SOCKET* hConnected = (SOCKET*)(arg);
 	SOCKET clientSocket = *hConnected;
 	
-	const char* helo = "Connected to server\r\n";
-	if (send(clientSocket, helo, strlen(helo), 0) == SOCKET_ERROR) {
-		std::cerr << "send failed with error: " << WSAGetLastError() << std::endl;
-		closesocket(clientSocket);
-		WSACleanup();
-		return 1;
-	}
-
+	
 	char buffer[BUF_SIZE];
 	int recvMessage;
 
-	recvMessage = recv(clientSocket, buffer, BUF_SIZE, 0);
-	buffer[recvMessage] = '\0';
-	cout << "C: " << buffer << endl;
-	cout << "S: 250 OK" << std::endl;
-
-
-	do {
+	while (1)
+	{
 		recvMessage = recv(clientSocket, buffer, BUF_SIZE, 0);
 		buffer[recvMessage] = '\0';
-		if (recvMessage == 1)
+		if (reply(buffer, clientSocket) == 0)
 		{
-			if (string(buffer) == "0")
-			{
-				cout << "C: QUIT" << endl;
-				break;
-			}		
-		}
-		if (recvMessage > 0) {			
-			cout << "C: " << buffer << endl;
-			cout << "S: 250 OK" << std::endl;
-
-		}
-		else {
-			printf("recv failed with error: %d\n", WSAGetLastError());
 			break;
 		}
-	} while (recvMessage > 0);
+	}
 
-	cout << "S: 221 BYE" << endl;
-	const char* bye = "Server bye";
-	send(clientSocket, bye, strlen(bye), 0);
 	closesocket(clientSocket);
 	delete hConnected;
 	return 0;
-
 }
 
 int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
@@ -137,20 +124,12 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		return 1;
 	}
 
-	//---------------------check port used
-	/*sockaddr_in addr;
-	int len = sizeof(addr);
-	getsockname(LISTEN_SOCKET, (sockaddr*)&addr, &len);
-
-	unsigned short port = ntohs(addr.sin_port);
-	std::cout << "Port used: " << port << std::endl;*/
-
-
 	cout << "Server is listening for connections..." << std::endl;
-	cout << "S: 220 Ready" << std::endl;
 	do {
 		SOCKET clientSocket = INVALID_SOCKET;
 		clientSocket = accept(LISTEN_SOCKET, NULL, NULL);
+		cout << "Client connected" << endl;
+		send(clientSocket, reply_code[4], strlen(reply_code[4]), 0);
 		if (clientSocket != INVALID_SOCKET) {
 			SOCKET* hConnected = new SOCKET();
 			*hConnected = clientSocket;
@@ -164,7 +143,6 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 			return 1;
 		}
 	} while (1);
-	cout << "S: 221 BYE" << endl;
 	freeaddrinfo(addrResult);
 	closesocket(LISTEN_SOCKET);
 	WSACleanup();
