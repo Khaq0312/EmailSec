@@ -3,10 +3,10 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
-/Demo_Server/Debug
-/Demo_Server/Demo_Server/Debug
+/Demo_Server/Debug/
+/Demo_Server/Demo_Server/Debug/
 /Demo_Client/Debug
-/Demo_Client/Demo_Client/Debug
+/Demo_Client/Demo_Client/Debug/
 # User-specific files
 *.rsuser
 *.suo
