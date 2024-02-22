@@ -4,7 +4,6 @@
 #include "stdafx.h"
 #include "Demo_Client.h"
 #include "afxsock.h"
-#include "message.h"
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -16,9 +15,6 @@ CWinApp theApp;
 
 using namespace std;
 
-const char* mailFromCommand = "MAIL FROM:<alice@example.com>";
-const char* rcptToCommand = "RCPT TO:<bob@example.com>";
-const char* dataCommand = "DATA";
 int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 {
 	WSADATA wsaData;
@@ -65,28 +61,42 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 	buffer[recvMessage] = '\0';
 	cout << "S: " << buffer;
 
+	int login = 0;
 	string input;
 	do {
 		cout << "C: ";
-		cin >> input;
+		getline(cin, input);
 		send(client, input.c_str(), input.length(), 0);
-		
+
 		recvMessage = recv(client, buffer, BUF_SIZE, 0);
 		buffer[recvMessage] = '\0';
-		if (string(buffer) == reply_code[13])
-		{
-			cout << "S: " << reply_code[13];
-			break;
+		if (strncmp(buffer, "235 Authentication successful", strlen("235 Authentication successful"))) {
+			login = 1;
 		}
-		if (recvMessage != 0)
-		{
-			cout << "S: " << buffer;
+		cout << "S: " << buffer;
+		if (input == "MY MAIL" && login == 1) {
+			//filename
+			cout << "C: ";
+			getline(cin, input);
+			send(client, input.c_str(), input.length(), 0);
+			Sleep(1);
+
+			while (1) {
+				recvMessage = recv(client, buffer, BUF_SIZE, 0);
+				buffer[recvMessage] = '\0';
+				if (recvMessage == 1 && string(buffer) == "") {
+					// End of file
+					break;
+				}
+				printf("%.*s", recvMessage, buffer); // Print only received data, not the entire buffer
+			}
+			cout << endl;
 		}
-		
+
 	} while ((string)input != "QUIT");
 
 	closesocket(client);
 	WSACleanup();
 	return 0;
-	
+
 }

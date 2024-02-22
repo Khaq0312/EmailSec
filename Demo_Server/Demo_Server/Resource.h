@@ -9,6 +9,7 @@
 #define MAX_RCPT_USR 50
 #define BUF_SIZE 1024
 #define DEFAULT_PORT 25
+#define MAX_BUFFER_SIZE 50
 // Next default values for new objects
 //
 #ifdef APSTUDIO_INVOKED
@@ -24,7 +25,7 @@
 #define __XSMTP_CONF_H
 // Mail Server configurations
 // User information saving configurations
-const char data_dir[] = "/home/kali/Desktop/xsmtp/data/";
+const char data_dir[] = ".\\Data\\";
 const char userinfo[] = "userinfo";
 const char userstat[] = "userstat";
 

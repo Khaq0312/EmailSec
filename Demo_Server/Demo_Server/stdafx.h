@@ -38,4 +38,11 @@
 #include <direct.h>
 #include "message.h"
 #include <ws2tcpip.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fstream> 
 using namespace std;
+
+
+

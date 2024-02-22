@@ -33,7 +33,10 @@
     <ClInclude Include="message.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="module.h">
+    <ClInclude Include="module_user.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="module_mail.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -44,7 +47,10 @@
     <ClCompile Include="Demo_Server.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="module.cpp">
+    <ClCompile Include="module_mail.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="module_user.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
