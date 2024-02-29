@@ -22,30 +22,6 @@ CWinApp theApp;
 using namespace std;
 
 
-//DWORD WINAPI function_cal(LPVOID arg)
-//{
-//	SOCKET* hConnected = (SOCKET*)(arg);
-//	SOCKET clientSocket = *hConnected;
-//
-//
-//	char buffer[BUF_SIZE];
-//	int recvMessage;
-//
-//	while (1)
-//	{
-//		recvMessage = recv(clientSocket, buffer, BUF_SIZE, 0);
-//		buffer[recvMessage] = '\0';
-//		if (reply(buffer, clientSocket) == 0)
-//		{
-//			break;
-//		}
-//	}
-//
-//	closesocket(clientSocket);
-//	delete hConnected;
-//	return 0;
-//}
-
 int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 {
 	WSADATA wsaData;
@@ -112,7 +88,7 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 
 
 	cout << "================================================================\n";
-	cout << "-XSMTP mail server by started..." << endl;
+	cout << "Mail server by started..." << endl;
 	do {
 		SOCKET clientSocket = INVALID_SOCKET;
 		clientSocket = accept(LISTEN_SOCKET, NULL, NULL);

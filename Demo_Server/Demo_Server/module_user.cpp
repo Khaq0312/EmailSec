@@ -1,71 +1,54 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "module_user.h"
 #include "module_mail.h"
 #include "Resource.h"
-// find if user existsvoid checkmail(int sockfd) {
-void checkmail(int sockfd) {
-	char fname[50];
-	int len;
+// mailbox
+void listmail(int sockfd) {
+	string folder_path = data_dir + string(from_user);
 
-	send_data(sockfd, reply_code[28]); // require mail name
-	len = recv(sockfd, fname, sizeof(fname), 0);
-	Sleep(1);
-	fname[len] = '\0';
+	int file_count = 0;
+	vector <string>filename;
+	for (const auto& entry : fs::directory_iterator(folder_path)) {
+		if (fs::is_regular_file(entry)) {
+			filename.push_back(entry.path().filename().string());
+			file_count++;
+		}
+	}
+	char buffer[1024];
+	std::sprintf(buffer, "%d", file_count);
+	send(sockfd, buffer, strlen(buffer), 0);
+	Sleep(10);
+	for (int i = 0; i < filename.size(); ++i) {
+		send(sockfd, filename[i].c_str(), strlen(filename[i].c_str()), 0);
+	}
 
-	char path[80];
-	strcpy(path, data_dir);
-	strcat(path, from_user);
-	strcat(path, "\\");
-	strcat(path, fname);
+}
 
+//get mail content
+void retrieve(int sockfd) {
+	char buffer[1024];
+	int recvMessage = recv(sockfd, buffer, strlen(buffer), 0);
+	buffer[recvMessage] = '\0';
+	string path = data_dir + string(from_user) + "\\" + buffer;
+	fstream fin;
+	fin.open(path, ios::in);
+
+	
 	FILE* file;
-	file = fopen(path, "r");
+	file = fopen(path.c_str(), "r");
 	if (file == NULL) {
 		perror("Error opening file");
 		exit(EXIT_FAILURE);
 	}
-	char buffer[1024];
-	size_t bytes_read;
-	
-
-	while ((bytes_read = fread(buffer, 1, 1024, file)) > 0) {
-		send(sockfd, buffer, bytes_read, 0);
+	int bytes_read;
+	string temp = "";
+	while (fread(buffer, 1, strlen(buffer), file) > 0) {
+		temp += string(buffer);
 	}
-	Sleep(10);
-	send(sockfd, "", 1, 0);
-
-
-	//while (fgets(data, sizeof(data), fp) != NULL) {
-	//	// cout<<data<<"---------"<<endl;
-	//
-	//char* token;
-	//token = strtok(data, " ");
-	//// test username
-	//// cout<<token<<" "<<strlen(token)<<endl;
-	//// cout<<name<<" "<<strlen(name)<<endl;
-	//	if (strncmp(token, name, strlen(name)) == 0) { // find username
-	//		cout<<"found username"<<endl;
-	//		char *p;
-	//		token = strtok(nullptr, " ");
-	//		// cout<<token<<" "strlen(token)<<endl;
-	//		// cout<<pass<<" "strlen(pass)<<endl;
-	//		if (strncmp(token, pass, strlen(pass)) == 0) { // valid passwd
-	//			cout<<"True password"<<endl;
-	//			fclose(fp);
-	//			strcpy(file, data_dir);
-	//			strcat(file, userstat);
-	//			fp = fopen(file, "w+");
-	//			strcat(name, " on"); // change the status of the user to ON
-	//			fwrite(name, 1, strlen(name), fp);
-	//			fclose(fp);
-	//			strcpy(from_user,name);
-	//			return 1; // success
-	//		} else { // invalid passwd
-	//		    cout<<"invalid password"<<endl;
-	//			return 0;
-	//		}
-	//	}
-	//}
+	temp += '\0';
+	send(sockfd, temp.c_str(), strlen(temp.c_str()), 0);
+	//buffer[bytes_read] = '\0';
+	fclose(file);
 }
 // find if user exists
 int check_user() {

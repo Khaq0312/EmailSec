@@ -123,8 +123,11 @@ void respond(int client_sockfd, char* request) {
 	else if (strncmp(request, "AUTH=LOGIN PLAIN", 10) == 0) {
 		auth(client_sockfd);
 	}
-	else if (strncmp(request, "MY MAIL", 10) == 0) {
-		checkmail(client_sockfd);
+	else if (strncmp(request, "LIST", 4) == 0) {
+		listmail(client_sockfd);
+	}
+	else if (strncmp(request, "RETR", 4) == 0){
+		retrieve(client_sockfd);
 	}
 	else {
 		send_data(client_sockfd, reply_code[15]);

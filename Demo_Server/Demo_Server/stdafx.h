@@ -42,7 +42,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fstream> 
+#include <filesystem>
+#include <vector>
+
 using namespace std;
+namespace fs = std::filesystem;
 
 
 

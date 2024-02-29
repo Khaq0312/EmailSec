@@ -1,7 +1,5 @@
 #pragma once
-#pragma once
-#ifndef __XSMTP_MESSAGES_H
-#define __XSMTP_MESSAGES_H
+
 
 const char reply_code[][100] = {
 	{" \r\n"},  //0
@@ -35,5 +33,3 @@ const char reply_code[][100] = {
 	{"334 UGFzc3dvcmQ6\r\n"},  //26, "UGFzc3dvcmQ6" is "Password:"'s base64 code
 	{"235 Authentication successful\r\n"} //27
 };
-
-#endif
