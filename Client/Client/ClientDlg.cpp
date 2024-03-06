@@ -246,8 +246,8 @@ void CClientDlg::OnBnClickedLogin()
 	{
 		AfxMessageBox(_T("Log in successfully!"), MB_OK | MB_ICONINFORMATION);
 		EndDialog(IDIGNORE);
-		// Create new window
 		CDlgFeature ft;
+		ft.m_hIcon = m_hIcon; // Assuming m_hIcon is the icon handle of the current dialog
 		ft.DoModal();
 	}
 	else

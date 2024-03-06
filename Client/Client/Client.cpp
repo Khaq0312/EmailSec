@@ -15,6 +15,8 @@ SOCKET client = INVALID_SOCKET;
 char buffer[BUF_SIZE];
 int recvMessage;
 CString username;
+
+std::vector<file> users;
 // CClientApp
 
 BEGIN_MESSAGE_MAP(CClientApp, CWinApp)

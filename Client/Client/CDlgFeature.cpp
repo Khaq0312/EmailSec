@@ -1,4 +1,4 @@
-// CDlgFeature.cpp : implementation file
+﻿// CDlgFeature.cpp : implementation file
 //
 
 #include "pch.h"
@@ -14,7 +14,7 @@ IMPLEMENT_DYNAMIC(CDlgFeature, CDialogEx)
 CDlgFeature::CDlgFeature(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_DIALOG1, pParent)
 {
-
+	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
 
 CDlgFeature::~CDlgFeature()
@@ -28,12 +28,17 @@ void CDlgFeature::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMPOSE_VIEW, m_compose_view);
 	DDX_Control(pDX, IDC_IBX_VIEW, m_inbox_view);
 	DDX_Control(pDX, IDC_COMPOSE, m_compose_box);
+	DDX_Control(pDX, IDC_TO_INPUT, m_to_input);
+	DDX_Control(pDX, IDC_SUBJECT_INPUT, m_subject_input);
+	DDX_Control(pDX, IDC_CONTENT_INPUT, m_content_input);
 }
 
 
 BOOL CDlgFeature::OnInitDialog() {
 	
-	CDialog::OnInitDialog();
+	CDialogEx::OnInitDialog();
+	SetIcon(m_hIcon, TRUE);			// Set big icon
+	SetIcon(m_hIcon, FALSE);
 	
 	ShowHideControls(IDC_COMPOSE, 0);
 	ShowHideControls(IDC_INBOX, 1);
@@ -42,12 +47,14 @@ BOOL CDlgFeature::OnInitDialog() {
 }
 
 BEGIN_MESSAGE_MAP(CDlgFeature, CDialogEx)
-	ON_LBN_SELCHANGE(IDC_INBOX, &CDlgFeature::OnLbnSelchangeInbox)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDC_LOGOUT, &CDlgFeature::OnBnClickedLogout)
 	ON_BN_CLICKED(IDC_COMPOSE_VIEW, &CDlgFeature::OnBnClickedComposeView)
 	ON_BN_CLICKED(IDC_IBX_VIEW, &CDlgFeature::OnBnClickedIbxView)
+	ON_BN_CLICKED(IDC_SEND, &CDlgFeature::OnBnClickedSend)
+	ON_LBN_SELCHANGE(IDC_INBOX, &CDlgFeature::OnLbnSelchangeInbox)
+	//ON_EN_CHANGE(IDC_CONTENT_INPUT, &CDlgFeature::OnEnChangeContentInput)
 END_MESSAGE_MAP()
 
 
@@ -87,11 +94,14 @@ void CDlgFeature::OnPaint()
 		font.DeleteObject();
 
 		font.CreateFontW(25, 0, 0, 0, FW_NORMAL, 0, 0, 0, 0, 0, 0, 0, 0, L"Arial");
-		/*GetDlgItem(IDC_STATIC_NAME)->SetFont(&font);
-		GetDlgItem(IDC_STATIC_PW)->SetFont(&font);*/
 		font.DeleteObject();
 		CDialogEx::OnPaint();
 	}
+}
+
+HCURSOR CDlgFeature::OnQueryDragIcon()
+{
+	return static_cast<HCURSOR>(m_hIcon);
 }
 // CDlgFeature message handlers
 
@@ -103,11 +113,26 @@ void CDlgFeature::OnLbnSelchangeInbox()
 	if (selectedIndex != LB_ERR) {
 		CString selected;
 		m_inbox.GetText(selectedIndex, selected);
-		send(client, "RETR", 4, 0);
-		MessageBox(_T("You choose: ") + selected);
+
+		int nameIndex = -1;
+		for (int i = 0; i < users.size(); i++) {
+			if (users[i].name_displayed == std::string(CT2A(selected))) {
+				nameIndex = i;
+				break;
+			}
+		}
+
+		if (nameIndex != -1)
+		{
+			send(client, "RETR", 4, 0);
+			std::string message = "You choose: " + users[nameIndex].name_displayed;
+			CString temp(message.c_str());
+			MessageBox(temp);
+
+			send(client, users[nameIndex].file_name.c_str(), strlen(users[nameIndex].file_name.c_str()), 0);
+			EndDialog(IDD_DIALOG1);
+		}
 		
-		send(client, CStringA(selected), strlen(CStringA(selected)), 0);
-		EndDialog(IDD_DIALOG1);
 		CDlgMail mail;
 		mail.DoModal();
 		
@@ -140,16 +165,28 @@ void CDlgFeature::OnBnClickedIbxView()
 	send(client, "LIST", 4, 0);
 	recvMessage = recv(client, buffer, BUF_SIZE, 0);
 	buffer[recvMessage] = '\0';
-	m_inbox.ResetContent();
-
 	int n = atoi(buffer);
+
+	send(client, "OK", 2, 0);
+
+	m_inbox.ResetContent();
 	if (n != 0)
 	{
 		for (int i = 0; i < n; i++)
 		{
+			//real file name
 			recvMessage = recv(client, buffer, BUF_SIZE, 0);
 			buffer[recvMessage] = '\0';
+			send(client, "OK", 2, 0);
+			std::string file_name_temp = std::string(buffer);
 
+			recvMessage = recv(client, buffer, BUF_SIZE, 0);
+			buffer[recvMessage] = '\0';
+			send(client, "OK", 2, 0);
+			std::string name_displayed_temp = std::string(buffer);
+		
+
+			users.push_back( { file_name_temp, name_displayed_temp });
 			CString str(buffer);
 			m_inbox.AddString(str);
 		}
@@ -184,4 +221,118 @@ void CDlgFeature::ShowHideControls(UINT id, BOOL hide)
 	}
 }
 
+//handle shift enter in content edit control
+BOOL CDlgFeature::PreTranslateMessage(MSG* pMsg)
+{
+	if (pMsg->message == WM_KEYDOWN && GetKeyState(VK_SHIFT) < 0) {
+		if (pMsg->wParam == VK_RETURN) {
+			CWnd* pFocusWnd = GetFocus();
+			if (pFocusWnd && pFocusWnd->GetDlgCtrlID() == IDC_CONTENT_INPUT) {
+				CEdit* pEdit = (CEdit*)pFocusWnd;
+				pEdit->ReplaceSel(_T("\r\n"));
+				return TRUE;
+			}
+		}
+	}
 
+	return CDialog::PreTranslateMessage(pMsg);
+}
+
+void CDlgFeature::OnBnClickedSend()
+{
+	// TODO: Add your control notification handler code here
+	time_t now = time(0);
+	now += 7 * 3600;
+	tm localTime;
+	localtime_s(&localTime, &now);
+
+	CString text;
+	m_to_input.GetWindowTextW(text);
+
+	std::string to_user = std::string(CT2A(text));
+
+	m_subject_input.GetWindowTextW(text);
+	std::string subject = std::string(CT2A(text));
+
+
+	m_content_input.GetWindowTextW(text);
+	std::string content = std::string(CT2A(text));
+
+	std::string data = "From: " + std::string(CT2A(username)) + "\nTo: "
+				+ to_user + "\nSubject: " + subject + "\nContent: " + content;
+
+	if (to_user.empty() || subject.empty() || content.empty())
+	{
+		MessageBox(_T("Fields must not be emptied"));
+	}
+	else
+	{
+		bool sentSuccessfully = false;
+		while (!sentSuccessfully)
+		{
+			
+			//mail from:...
+			std::string command = "MAIL FROM:<" + std::string(CT2A(username)) + '>';
+			send(client, command.c_str(), strlen(command.c_str()), 0);
+			recvMessage = recv(client, buffer, BUF_SIZE, 0);
+			buffer[recvMessage] = '\0';
+
+			//rcpt to: user
+			command = "RCPT TO:<" + to_user + '>';
+			send(client, command.c_str(), strlen(command.c_str()), 0);
+			recvMessage = recv(client, buffer, BUF_SIZE, 0);
+			buffer[recvMessage] = '\0';
+
+			// Check if the server response is "250 OK"
+			if (std::string(buffer) == reply_code[6])
+			{
+				std::string time = std::to_string(localTime.tm_year + 1900) + "/"
+					+ std::to_string(localTime.tm_mon + 1) + "/"
+					+ std::to_string(localTime.tm_mday) + " " 
+					+ std::to_string(localTime.tm_hour) + ":"
+					+ std::to_string(localTime.tm_min) + ":"
+					+ std::to_string(localTime.tm_sec);
+
+				std::string title = time + "\nFrom:" + std::string(CT2A(username)) 
+										+ "\nTo:" + to_user + "\nSubject:" + subject 
+										+ "\nContent: " + content;
+				// Data
+				send(client, "DATA", 4, 0);
+				recvMessage = recv(client, buffer, BUF_SIZE, 0);
+				buffer[recvMessage] = '\0';
+
+
+				send(client, title.c_str(), strlen(title.c_str()), 0);
+				recvMessage = recv(client, buffer, BUF_SIZE, 0);
+				buffer[recvMessage] = '\0';
+
+				/*data = time + '\n' + data;
+				send(client, data.c_str(), strlen(data.c_str()), 0);
+				recvMessage = recv(client, buffer, BUF_SIZE, 0);
+				buffer[recvMessage] = '\0';*/
+
+				MessageBox(_T("Message sent"));
+				sentSuccessfully = true;
+
+				// Reset interface fields
+				m_to_input.SetWindowTextW(_T(""));
+				m_subject_input.SetWindowTextW(_T(""));
+				m_content_input.SetWindowTextW(_T(""));
+			}
+			else
+			{
+				// Server response is not "250 OK"
+				MessageBox(_T("Recipient email address is invalid. Please enter again."));
+				// Clear the recipient email field and wait for the user to re-enter
+				m_to_input.SetWindowTextW(_T(""));
+				m_to_input.GetWindowTextW(text);
+				to_user = std::string(CT2A(text));
+				if (to_user.empty())
+				{
+					// If the user cancels re-entering the email, break the loop
+					break;
+				}
+			}
+		}
+	}
+}

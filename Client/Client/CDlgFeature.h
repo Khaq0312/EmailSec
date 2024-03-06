@@ -18,7 +18,6 @@ public:
 #endif
 
 protected:
-	HICON m_hIcon;
 
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	BOOL CDlgFeature::OnInitDialog();
@@ -26,6 +25,10 @@ protected:
 
 	DECLARE_MESSAGE_MAP()
 public:
+	HICON m_hIcon;
+	BOOL CDlgFeature::PreTranslateMessage(MSG* pMsg);
+
+	afx_msg HCURSOR OnQueryDragIcon();
 	afx_msg void OnLbnSelchangeInbox();
 	CListBox m_inbox;
 	afx_msg void OnBnClickedLogout();
@@ -36,6 +39,8 @@ public:
 	CStatic m_compose_box;
 	void CDlgFeature::ShowHideControls(UINT id, BOOL hide);
 
-	afx_msg void OnStnClickedSubject();
-	afx_msg void OnBnClickedIbxFrame();
+	CEdit m_to_input;
+	CEdit m_subject_input;
+	CEdit m_content_input;
+	afx_msg void OnBnClickedSend();
 };

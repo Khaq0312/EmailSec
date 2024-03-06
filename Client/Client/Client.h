@@ -37,3 +37,8 @@ extern SOCKET client;
 extern char buffer[BUF_SIZE];
 extern int recvMessage;
 extern CString username;
+struct file {
+	std::string file_name;
+	std::string name_displayed;
+};
+extern std::vector<file> users;

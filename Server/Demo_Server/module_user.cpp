@@ -2,26 +2,71 @@
 #include "module_user.h"
 #include "module_mail.h"
 #include "Resource.h"
+
 // mailbox
 void listmail(int sockfd) {
 	string folder_path = data_dir + string(from_user);
 
-	int file_count = 0;
-	vector <string>filename;
+	vector<string> filename;
 	for (const auto& entry : fs::directory_iterator(folder_path)) {
 		if (fs::is_regular_file(entry)) {
 			filename.push_back(entry.path().filename().string());
-			file_count++;
 		}
 	}
-	char buffer[1024];
-	std::sprintf(buffer, "%d", file_count);
-	send(sockfd, buffer, strlen(buffer), 0);
-	Sleep(10);
-	for (int i = 0; i < filename.size(); ++i) {
-		send(sockfd, filename[i].c_str(), strlen(filename[i].c_str()), 0);
-	}
+	//sort: new -> old
+	sort(filename.rbegin(), filename.rend());
 
+	int file_count = filename.size();
+	char buffer[1024];
+	sprintf(buffer, "%d", file_count);
+	send(sockfd, buffer, strlen(buffer), 0);
+
+	int recvMessage = recv(sockfd, buffer, 1024, 0);
+	buffer[recvMessage] = '\0';
+
+	Sleep(10);
+	for (int i = 0; i < filename.size(); ++i) 
+	{
+		send(sockfd, filename[i].c_str(), strlen(filename[i].c_str()), 0);
+		recvMessage = recv(sockfd, buffer, 1024, 0);
+		buffer[recvMessage] = '\0';
+		fstream fIn;
+		string path = folder_path + "\\" + filename[i];
+		fIn.open(path, ios::in);
+		if (fIn.is_open()) {
+			string time, from, to, subject;
+			getline(fIn, time);
+			getline(fIn, from);
+			getline(fIn, to);
+			getline(fIn, subject);
+
+			int pos = time.find(":");
+			time = time.substr(pos + 1);
+
+			pos = subject.find(":");
+			subject = subject.substr(pos + 1);
+
+			string title = "";
+			string temp = "From:" + string(from_user);
+			int space;
+			if (from == temp)
+			{
+				title = time + "      " + to + "  ";
+				title += subject;
+			}
+			else
+			{
+				title = time + "      " + from + "  ";
+				title += subject;
+			}
+		
+			fIn.close();
+
+			send(sockfd, title.c_str(), title.size(), 0);
+			recvMessage = recv(sockfd, buffer, 1024, 0);
+			buffer[recvMessage] = '\0';
+		}
+	}
 }
 
 //get mail content
@@ -33,22 +78,19 @@ void retrieve(int sockfd) {
 	fstream fin;
 	fin.open(path, ios::in);
 
-	
-	FILE* file;
-	file = fopen(path.c_str(), "r");
-	if (file == NULL) {
-		perror("Error opening file");
-		exit(EXIT_FAILURE);
+	if (!fin.is_open()) {
+		std::cerr << "Error opening file: " << path << std::endl;
+		return;
 	}
-	int bytes_read;
-	string temp = "";
-	while (fread(buffer, 1, strlen(buffer), file) > 0) {
-		temp += string(buffer);
+
+	string temp;
+	char byte;
+	while (fin.get(byte)) {
+		temp += byte;
 	}
-	temp += '\0';
-	send(sockfd, temp.c_str(), strlen(temp.c_str()), 0);
-	//buffer[bytes_read] = '\0';
-	fclose(file);
+
+	fin.close();
+	send(sockfd, temp.c_str(), temp.size(), 0);
 }
 // find if user exists
 int check_user() {
@@ -125,20 +167,20 @@ int check_name_pass(char* name, char* pass) {
 	strcat(file, userinfo);
 	fp = fopen(file, "r");
 	while (fgets(data, sizeof(data), fp) != NULL) {
-		// cout<<data<<"---------"<<endl;
 
 		char* token;
 		token = strtok(data, " ");
-		// test username
-		// cout<<token<<" "<<strlen(token)<<endl;
-		// cout<<name<<" "<<strlen(name)<<endl;
-		if (strncmp(token, name, strlen(name)) == 0) { // find username
+		if ((strncmp(token, name, strlen(token)) == 0) && string(token) == name) { // find username
 			cout << "found username" << endl;
 			char* p;
 			token = strtok(nullptr, " ");
-			// cout<<token<<" "strlen(token)<<endl;
-			// cout<<pass<<" "strlen(pass)<<endl;
-			if (strncmp(token, pass, strlen(pass)) == 0) { // valid passwd
+			if (token[strlen(token) - 1] == '\n')
+			{
+				token[strlen(token) - 1] = '\0';
+
+			}
+			if ((strncmp(token, pass, strlen(token)) == 0) && string(token) == pass) { // valid passwd
+
 				cout << "True password" << endl;
 				strcpy(from_user, name);
 

@@ -26,7 +26,6 @@
 #define IDC_SEND                        1014
 #define IDC_BACK                        1014
 #define IDC_TO                          1015
-#define IDC_S                           1016
 #define IDC_SUBJECT                     1016
 #define IDC_CONTENT                     1017
 #define IDC_IBX_FRAME                   1018
