@@ -44,6 +44,7 @@
 #include <fstream> 
 #include <filesystem>
 #include <vector>
+#include <algorithm>
 
 using namespace std;
 namespace fs = std::filesystem;

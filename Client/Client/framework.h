@@ -40,6 +40,8 @@
 #include "message.h"
 #include <ctime>
 #include <vector>
+#include <chrono>
+#include <iomanip>
 #ifdef _UNICODE
 
 #if defined _M_IX86

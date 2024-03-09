@@ -39,35 +39,58 @@ BOOL CDlgMail::OnInitDialog() {
 
     recvMessage = recv(client, buffer, BUF_SIZE, 0);
     buffer[recvMessage] = '\0';
+    send(client, "OK", 2, 0);
+
+    recvMessage = recv(client, buffer, BUF_SIZE, 0);
+    buffer[recvMessage] = '\0';
     CString temp(buffer);
 
-    //// Lấy kích thước hiện tại của control
-    //CRect rect;
-    //m_content.GetClientRect(&rect);
+    CRect rect;
+    m_content.GetClientRect(&rect);
 
-    //// Tạo một đối tượng CClientDC để lấy thông tin về font
-    //CDC* pDC = m_content.GetDC();
-    //if (pDC) {
-    //    // Lấy font của static text
-    //    CFont* pFont = m_content.GetFont();
-    //    if (pFont) {
-    //        CFont* pOldFont = pDC->SelectObject(pFont);
+    CDC* pDC = m_content.GetDC();
+    if (pDC) {
+        CFont* pFont = m_content.GetFont();
+        if (pFont) {
+            CFont* pOldFont = pDC->SelectObject(pFont);
 
-    //        pDC->GetTextExtent(temp, recvMessage); 
+            CString wrappedText; // Chuỗi văn bản đã được xuống hàng
+            CString currentLine; // Chuỗi hiện tại đang xử lý
 
-    //        // Kiểm tra xem chiều rộng của văn bản có lớn hơn chiều rộng của static text không
-    //        if (recvMessage < rect.Width()) {
-    //            // Nếu có, thực hiện xuống dòng trong văn bản
-    //            temp.Replace(_T(" "), _T("\r\n")); // Thay thế khoảng trắng bằng dấu xuống dòng
-    //        }
+            int currentLineWidth = 0; // Độ dài hiện tại của dòng đang xử lý
 
-    //        pDC->SelectObject(pOldFont);
-    //    }
-    //    m_content.ReleaseDC(pDC);
-    //}
+            for (int i = 0; i < temp.GetLength(); ++i)
+            {
+                // Thêm ký tự mới vào dòng hiện tại và cập nhật độ dài dòng
+                currentLine += temp[i];
+                currentLineWidth = pDC->GetTextExtent(currentLine).cx;
 
-    //// Đặt văn bản đã thay đổi vào CStatic control
-    m_content.SetWindowTextW(temp);
+                // Kiểm tra nếu độ dài của dòng vượt quá chiều rộng của control hoặc là ký tự xuống dòng
+                if (currentLineWidth > rect.Width() || temp[i] == '\n')
+                {
+                    // Thêm dòng hiện tại vào chuỗi đã xuống hàng
+                    wrappedText += currentLine.Left(currentLine.GetLength() - 1) + _T("\r\n");
+                    // Bắt đầu dòng mới với ký tự hiện tại (nếu không phải là ký tự xuống dòng)
+                    if (temp[i] != '\n')
+                        currentLine = temp[i];
+                    else
+                        currentLine.Empty(); // Reset currentLine nếu là ký tự xuống dòng
+                }
+            }
+
+            // Thêm dòng cuối cùng vào chuỗi đã xuống hàng (nếu có)
+            if (!currentLine.IsEmpty())
+                wrappedText += currentLine;
+
+            pDC->SelectObject(pOldFont);
+            m_content.ReleaseDC(pDC);
+
+            // Đặt chuỗi đã xuống hàng vào control
+            m_content.SetWindowTextW(wrappedText);
+        }
+    }
+
+
 
     return TRUE;
 }

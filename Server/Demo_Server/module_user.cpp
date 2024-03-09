@@ -3,7 +3,10 @@
 #include "module_mail.h"
 #include "Resource.h"
 
-// mailbox
+bool compareByNewest(const string& a, const string& b) {
+	return a > b;
+}
+
 void listmail(int sockfd) {
 	string folder_path = data_dir + string(from_user);
 
@@ -14,8 +17,8 @@ void listmail(int sockfd) {
 		}
 	}
 	//sort: new -> old
-	sort(filename.rbegin(), filename.rend());
-
+	std::sort(filename.begin(), filename.end(),compareByNewest);
+	
 	int file_count = filename.size();
 	char buffer[1024];
 	sprintf(buffer, "%d", file_count);
@@ -40,18 +43,15 @@ void listmail(int sockfd) {
 			getline(fIn, to);
 			getline(fIn, subject);
 
-			int pos = time.find(":");
-			time = time.substr(pos + 1);
 
-			pos = subject.find(":");
+			int pos = subject.find(":");
 			subject = subject.substr(pos + 1);
 
 			string title = "";
-			string temp = "From:" + string(from_user);
-			int space;
+			string temp = "From: " + string(from_user);
 			if (from == temp)
 			{
-				title = time + "      " + to + "  ";
+				title = time + "        " + to + "  ";
 				title += subject;
 			}
 			else
@@ -83,12 +83,24 @@ void retrieve(int sockfd) {
 		return;
 	}
 
-	string temp;
+	string temp = "";
 	char byte;
+	string time, from, to, subject, content;
+	getline(fin, time);
+	temp += time + '\n' + '\n';
+	getline(fin, from);
+	temp += from + '\n' + '\n';
+	getline(fin, to);
+	temp += to + '\n' + '\n';
+	getline(fin, subject);
+	temp += subject + '\n' + '\n';
+	send(sockfd, temp.c_str(), temp.size(), 0);
+	recvMessage = recv(sockfd, buffer, strlen(buffer), 0);
+	buffer[recvMessage] = '\0';
+
 	while (fin.get(byte)) {
 		temp += byte;
 	}
-
 	fin.close();
 	send(sockfd, temp.c_str(), temp.size(), 0);
 }

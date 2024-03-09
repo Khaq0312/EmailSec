@@ -148,12 +148,20 @@ void mail_data(int sockfd) {
 	char buf[BUF_SIZE];
 	memset(buf, 0, sizeof(buf));
 	recv(sockfd, buf, sizeof(buf), 0); // recieve mail contents
-	cout << "Mail Contents: \n" << buf << endl;
 
+	string temp = "";
+	int i = 0;
+	while (buf[i] != '\n')
+	{
+		if (buf[i] != '/' && buf[i] != ':' && buf[i] != ' ')
+		{
+			temp += buf[i];
+		}
+		i++;
+	}
 	//mail content and format check
 
 	//mail content store
-	int tm = time(NULL), i;
 	char file[80], tp[20];
 
 	for (i = 0; i < rcpt_user_num; i++) {
@@ -168,8 +176,10 @@ void mail_data(int sockfd) {
 				continue; // Skip to next iteration if directory creation fails
 			}
 		}
-		sprintf_s(tp, "/%d", tm);
-		strcat_s(file, sizeof(file), tp);
+		
+		temp = '\\' + temp;
+		strcpy_s(tp, sizeof(tp), temp.c_str());
+;		strcat_s(file, sizeof(file), tp);
 
 		FILE* fp;
 		if (fopen_s(&fp, file, "w+") == 0) {

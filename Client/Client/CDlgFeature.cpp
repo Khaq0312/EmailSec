@@ -187,10 +187,14 @@ void CDlgFeature::OnBnClickedIbxView()
 		
 
 			users.push_back( { file_name_temp, name_displayed_temp });
-			CString str(buffer);
-			m_inbox.AddString(str);
+			/*CString str(buffer);
+			m_inbox.AddString(str);*/
+			int index = m_inbox.InsertString(-1, CString(name_displayed_temp.c_str()));
+			
 		}
 	}
+	m_inbox.ShowWindow(SW_SHOW);
+	m_inbox.Invalidate();
 	ShowHideControls(IDC_COMPOSE, 1); 
 	ShowHideControls(IDC_INBOX, 0);
 
@@ -241,10 +245,11 @@ BOOL CDlgFeature::PreTranslateMessage(MSG* pMsg)
 void CDlgFeature::OnBnClickedSend()
 {
 	// TODO: Add your control notification handler code here
-	time_t now = time(0);
-	now += 7 * 3600;
+	auto now = std::chrono::system_clock::now();
+
+	std::time_t now_time = std::chrono::system_clock::to_time_t(now);
 	tm localTime;
-	localtime_s(&localTime, &now);
+	localtime_s(&localTime, &now_time);
 
 	CString text;
 	m_to_input.GetWindowTextW(text);
@@ -258,8 +263,8 @@ void CDlgFeature::OnBnClickedSend()
 	m_content_input.GetWindowTextW(text);
 	std::string content = std::string(CT2A(text));
 
-	std::string data = "From: " + std::string(CT2A(username)) + "\nTo: "
-				+ to_user + "\nSubject: " + subject + "\nContent: " + content;
+	/*std::string data = "From: " + std::string(CT2A(username)) + "\nTo: "
+				+ to_user + "\nSubject: " + subject + "\nContent: " + content;*/
 
 	if (to_user.empty() || subject.empty() || content.empty())
 	{
@@ -286,15 +291,27 @@ void CDlgFeature::OnBnClickedSend()
 			// Check if the server response is "250 OK"
 			if (std::string(buffer) == reply_code[6])
 			{
+				std::string month, day, hour, min, sec;
+				month = std::to_string(localTime.tm_mon + 1);
+				day = std::to_string(localTime.tm_mday);
+				hour = std::to_string(localTime.tm_hour);
+				min = std::to_string(localTime.tm_min);
+				sec = std::to_string(localTime.tm_sec);
+				if (month.length() == 1)
+					month = '0' + month;
+				if (day.length() == 1)
+					day = '0' + day;
+				if (hour.length() == 1)
+					hour = '0' + hour;
+				if (min.length() == 1)
+					min = '0' + min;
+				if (sec.length() == 1)
+					sec = '0' + sec;
 				std::string time = std::to_string(localTime.tm_year + 1900) + "/"
-					+ std::to_string(localTime.tm_mon + 1) + "/"
-					+ std::to_string(localTime.tm_mday) + " " 
-					+ std::to_string(localTime.tm_hour) + ":"
-					+ std::to_string(localTime.tm_min) + ":"
-					+ std::to_string(localTime.tm_sec);
+					+ month + "/" + day	+ " "+ hour + ":" + min + ":" + sec ;
 
-				std::string title = time + "\nFrom:" + std::string(CT2A(username)) 
-										+ "\nTo:" + to_user + "\nSubject:" + subject 
+				std::string title = time + "\nFrom: " + std::string(CT2A(username)) 
+										+ "\nTo: " + to_user + "\nSubject: " + subject 
 										+ "\nContent: " + content;
 				// Data
 				send(client, "DATA", 4, 0);
