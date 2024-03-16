@@ -165,6 +165,7 @@ void CDlgFeature::OnBnClickedIbxView()
 	send(client, "LIST", 4, 0);
 	recvMessage = recv(client, buffer, BUF_SIZE, 0);
 	buffer[recvMessage] = '\0';
+
 	int n = atoi(buffer);
 
 	send(client, "OK", 2, 0);

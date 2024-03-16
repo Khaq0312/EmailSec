@@ -125,9 +125,14 @@ void respond(int client_sockfd, char* request) {
 	}
 	else if (strncmp(request, "LIST", 4) == 0) {
 		listmail(client_sockfd);
+		cout << "Reply stream: 250 OK" << endl;
+
 	}
 	else if (strncmp(request, "RETR", 4) == 0){
 		retrieve(client_sockfd);
+		cout << "Reply stream: 250 OK" << endl;
+
+
 	}
 	else {
 		send_data(client_sockfd, reply_code[15]);
@@ -160,7 +165,7 @@ void mail_data(int sockfd) {
 		i++;
 	}
 	//mail content and format check
-
+	cout << buf << endl;
 	//mail content store
 	char file[80], tp[20];
 
