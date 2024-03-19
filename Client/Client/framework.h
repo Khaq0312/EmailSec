@@ -42,6 +42,11 @@
 #include <vector>
 #include <chrono>
 #include <iomanip>
+#include <cstdlib>
+#include <direct.h>
+#include <filesystem>
+#include <fstream>
+namespace fs = std::filesystem;
 #ifdef _UNICODE
 
 #if defined _M_IX86

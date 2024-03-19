@@ -245,10 +245,11 @@ void CClientDlg::OnBnClickedLogin()
 	if (std::string(buffer) == reply_code[27])
 	{
 		AfxMessageBox(_T("Log in successfully!"), MB_OK | MB_ICONINFORMATION);
-		EndDialog(IDIGNORE);
+		EndDialog(0);
 		CDlgFeature ft;
-		ft.m_hIcon = m_hIcon; // Assuming m_hIcon is the icon handle of the current dialog
+		//ft.m_hIcon = m_hIcon; // Assuming m_hIcon is the icon handle of the current dialog
 		ft.DoModal();
+	
 	}
 	else
 	{

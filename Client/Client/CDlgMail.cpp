@@ -29,21 +29,105 @@ void CDlgMail::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CDlgMail, CDialogEx)
 	ON_BN_CLICKED(IDC_BACK, &CDlgMail::OnBnClickedBack)
+    ON_COMMAND(IDCANCEL,&CDlgMail::OnCancel)
 END_MESSAGE_MAP()
 
 
 // CDlgMail message handlers
+void CDlgMail::OnCancel() {
+    CDialogEx::OnCancel();
+    send(client, "QUIT", 4, 0);
+    closesocket(client);
+
+}
 
 BOOL CDlgMail::OnInitDialog() {
     CDialog::OnInitDialog();
-
-    recvMessage = recv(client, buffer, BUF_SIZE, 0);
+    
+    /*recvMessage = recv(client, buffer, BUF_SIZE, 0);
     buffer[recvMessage] = '\0';
     send(client, "OK", 2, 0);
 
     recvMessage = recv(client, buffer, BUF_SIZE, 0);
     buffer[recvMessage] = '\0';
-    CString temp(buffer);
+    CString temp(buffer);*/
+    std::string userRoot = std::string(CT2A(username));
+    fs::current_path(userRoot);
+    char byte;
+    std::fstream file;
+    std::string privatekey, cipher, aes_key, temp = "";
+    
+
+    recvMessage = recv(client, buffer, BUF_SIZE, 0);
+    buffer[recvMessage] = '\0';
+    send(client, "OK", 2, 0);
+    cipher = std::string(buffer);
+    file.open("sender_cipher.enc", std::ios::out);
+    if (file.is_open())
+    {
+        file << cipher;
+        file.close();
+    }
+
+    recvMessage = recv(client, buffer, BUF_SIZE, 0);
+    buffer[recvMessage] = '\0';
+    send(client, "OK", 2, 0);
+    aes_key = std::string(buffer);
+    file.open("sender_aes_key.enc", std::ios::out);
+    if (file.is_open())
+    {
+        file << aes_key;
+        file.close();
+    }
+
+    std::string command = 
+        "openssl smime -decrypt -in ./sender_cipher.enc -recip ./mycert.crt -inkey ./private.key -out ./decrypted.txt && "
+        "openssl base64 -d -in sender_aes_key.enc -out temp.enc &&"//aes key encrypted
+        "openssl rsautl -decrypt -in temp.enc -out sender_aes_key.txt -inkey private.key && "
+        "openssl enc -d -aes-128-cbc -in decrypted.txt -out sender_signed.txt -pass file:sender_aes_key.txt -base64";//get the sign
+   
+    std::system(command.c_str());
+
+    
+    std::string content;
+    file.open("sender_signed.txt", std::ios::in);
+    if (file.is_open())
+    {
+        while (file.get(byte))
+        {
+            content += byte;
+        }
+        file.close();
+    }
+    size_t pos = content.find("From:");
+    if (pos != std::string::npos)
+    {
+        pos += 6;
+        while (content[pos] != '\r') {
+            temp += content[pos];
+            pos++;
+        }
+    }
+
+
+    std::string certificate = temp + "Cert.crt";
+    command = "openssl smime -verify -in ./sender_signed.txt -CAfile " + certificate + " -out verify.txt";
+    std::system(command.c_str());
+
+    temp = "";
+    file.open("verify.txt", std::ios::in);
+    if (file.is_open())
+    {
+        while (file.get(byte))
+        {
+            temp += byte;
+        }
+        file.close();
+    }
+    fs::current_path("..");
+
+    CString display(temp.c_str());
+
 
     CRect rect;
     m_content.GetClientRect(&rect);
@@ -59,7 +143,7 @@ BOOL CDlgMail::OnInitDialog() {
 
             int currentLineWidth = 0; // Độ dài hiện tại của dòng đang xử lý
 
-            for (int i = 0; i < temp.GetLength(); ++i)
+            for (int i = 0; i < display.GetLength(); ++i)
             {
                 // Thêm ký tự mới vào dòng hiện tại và cập nhật độ dài dòng
                 currentLine += temp[i];

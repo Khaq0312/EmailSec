@@ -18,7 +18,7 @@ DWORD WINAPI mail_proc(LPVOID param) {
 		memset(buf, 0, sizeof(buf));
 		len = recv(client_sockfd, buf, sizeof(buf), 0);
 		if (len > 0) {
-			cout << "Request stream: " << buf << endl;
+			std::cout << "Request stream: " << buf << endl;
 			respond(client_sockfd, buf);
 		}
 		else {
@@ -151,9 +151,12 @@ void send_data(int sockfd, const char* data) {
 void mail_data(int sockfd) {
 	Sleep(1);
 	char buf[BUF_SIZE];
-	memset(buf, 0, sizeof(buf));
-	recv(sockfd, buf, sizeof(buf), 0); // recieve mail contents
 
+	//header
+	int  recvMessage = recv(sockfd, buf, BUF_SIZE, 0);
+	buf[recvMessage] = '\0';
+	send(sockfd, "OK", 2, 0);
+	//get filename = time sent
 	string temp = "";
 	int i = 0;
 	while (buf[i] != '\n')
@@ -164,38 +167,79 @@ void mail_data(int sockfd) {
 		}
 		i++;
 	}
+	string header = string(buf);
+
+	recvMessage = recv(sockfd, buf, BUF_SIZE, 0);
+	buf[recvMessage] = '\0';
+	send(sockfd, "OK", 2, 0);
+	string body = string(buf);
+
+
+	recvMessage = recv(sockfd, buf, BUF_SIZE, 0);
+	buf[recvMessage] = '\0';
+	send(sockfd, "OK", 2, 0);
+	string send_to_user = string(buf);
+
+	//ciphertext
+	recvMessage = recv(sockfd, buf, BUF_SIZE, 0);
+	buf[recvMessage] = '\0';
+	send(sockfd, "OK", 2, 0);
+	string cipher = string(buf);
+	cout << cipher;
+
+	//aes key encrypted
+	recvMessage = recv(sockfd, buf, BUF_SIZE, 0);
+	buf[recvMessage] = '\0';
+	send(sockfd, "OK", 2, 0);
+	string aeskey = string(buf);
 	//mail content and format check
-	cout << buf << endl;
+	//cout << buf << endl;
 	//mail content store
 	char file[80], tp[20];
 
-	for (i = 0; i < rcpt_user_num; i++) {
-		strcpy_s(file, sizeof(file), data_dir);
-		strcat_s(file, sizeof(file), rcpt_user[i]);
-		wchar_t wfile[MAX_PATH];
-		MultiByteToWideChar(CP_ACP, 0, file, -1, wfile, MAX_PATH);
+	string dir = ".\\key\\" + temp;
 
-		if (GetFileAttributes(wfile) == INVALID_FILE_ATTRIBUTES && GetLastError() == ERROR_FILE_NOT_FOUND) {
-			if (!CreateDirectory(wfile, NULL)) {
-				cout << "Failed to create directory: " << GetLastError() << endl;
-				continue; // Skip to next iteration if directory creation fails
+	fstream f;
+
+	f.open(dir, ios::out);
+	if (f.is_open())
+	{
+		f << aeskey;
+		f.close();
+	}
+
+	for (i = 0; i < rcpt_user_num; i++) {
+		if (string(rcpt_user[i]) == send_to_user)
+		{
+			strcpy_s(file, sizeof(file), data_dir);
+			strcat_s(file, sizeof(file), rcpt_user[i]);
+			wchar_t wfile[MAX_PATH];
+			MultiByteToWideChar(CP_ACP, 0, file, -1, wfile, MAX_PATH);
+
+			if (GetFileAttributes(wfile) == INVALID_FILE_ATTRIBUTES && GetLastError() == ERROR_FILE_NOT_FOUND) {
+				if (!CreateDirectory(wfile, NULL)) {
+					cout << "Failed to create directory: " << GetLastError() << endl;
+					continue; // Skip to next iteration if directory creation fails
+				}
+			}
+
+			temp = '\\' + temp;
+			strcpy_s(tp, sizeof(tp), temp.c_str());
+			;		strcat_s(file, sizeof(file), tp);
+
+			f.open(file, ios::out);
+			if (f.is_open()) {
+				f << cipher;
+				f.close();
+
+
 			}
 		}
 		
-		temp = '\\' + temp;
-		strcpy_s(tp, sizeof(tp), temp.c_str());
-;		strcat_s(file, sizeof(file), tp);
-
-		FILE* fp;
-		if (fopen_s(&fp, file, "w+") == 0) {
-			fwrite(buf, 1, strlen(buf), fp);
-			fclose(fp);
-		}
-		else {
-			cout << "File open error!" << endl;
-		}
+		
 	}
-	send_data(sockfd, reply_code[6]);
+	//send_data(sockfd, reply_code[6]);
+	cout << endl << "Reply stream: 250 OK" <<endl;
 }
 
 // decode base64 streams

@@ -29,7 +29,9 @@
 #define IDC_SUBJECT                     1016
 #define IDC_CONTENT                     1017
 #define IDC_IBX_FRAME                   1018
-#define BUF_SIZE                        1024
+#define IDC_BUTTON2                     1021
+#define IDC_sent                        1021
+#define BUF_SIZE                        8192
 
 // Next default values for new objects
 // 
@@ -37,7 +39,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        134
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1021
+#define _APS_NEXT_CONTROL_VALUE         1022
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

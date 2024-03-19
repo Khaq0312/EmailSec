@@ -30,10 +30,11 @@ void listmail(int sockfd) {
 	Sleep(10);
 	for (int i = 0; i < filename.size(); ++i) 
 	{
+		cout << filename[i] << endl;
 		send(sockfd, filename[i].c_str(), strlen(filename[i].c_str()), 0);
 		recvMessage = recv(sockfd, buffer, 1024, 0);
 		buffer[recvMessage] = '\0';
-		fstream fIn;
+		/*fstream fIn;
 		string path = folder_path + "\\" + filename[i];
 		fIn.open(path, ios::in);
 		if (fIn.is_open()) {
@@ -65,44 +66,73 @@ void listmail(int sockfd) {
 			send(sockfd, title.c_str(), title.size(), 0);
 			recvMessage = recv(sockfd, buffer, 1024, 0);
 			buffer[recvMessage] = '\0';
-		}
+		}*/
 	}
 }
 
+
 //get mail content
 void retrieve(int sockfd) {
-	char buffer[1024];
-	int recvMessage = recv(sockfd, buffer, strlen(buffer), 0);
+	char buffer[BUF_SIZE];
+	int recvMessage = recv(sockfd, buffer, BUF_SIZE, 0);
 	buffer[recvMessage] = '\0';
+	string filename = string(buffer);
 	string path = data_dir + string(from_user) + "\\" + buffer;
-	fstream fin;
-	fin.open(path, ios::in);
 
-	if (!fin.is_open()) {
+	fstream file;
+	file.open(path, ios::in);
+
+	if (!file.is_open()) {
 		std::cerr << "Error opening file: " << path << std::endl;
 		return;
 	}
-
-	string temp = "";
+	string cipher, aes_key;
 	char byte;
-	string time, from, to, subject, content;
-	getline(fin, time);
-	temp += time + '\n' + '\n';
-	getline(fin, from);
-	temp += from + '\n' + '\n';
-	getline(fin, to);
-	temp += to + '\n' + '\n';
-	getline(fin, subject);
-	temp += subject + '\n' + '\n';
-	send(sockfd, temp.c_str(), temp.size(), 0);
-	recvMessage = recv(sockfd, buffer, strlen(buffer), 0);
+	while (file.get(byte))
+	{
+		cipher += byte;
+	}
+	file.close();
+
+	send(sockfd, cipher.c_str(), strlen(cipher.c_str()), 0);
+	recvMessage = recv(sockfd, buffer, BUF_SIZE, 0);
 	buffer[recvMessage] = '\0';
 
-	while (fin.get(byte)) {
+	path = ".\\key\\" + filename;
+	file.open(path, ios::in);
+	if (file.is_open())
+	{
+		while (file.get(byte))
+		{
+			aes_key += byte;
+		}
+		file.close();
+	}
+
+	send(sockfd, aes_key.c_str(), strlen(aes_key.c_str()), 0);
+	recvMessage = recv(sockfd, buffer, BUF_SIZE, 0);
+	buffer[recvMessage] = '\0';
+	//string temp = "";
+	//char byte;
+	//string time, from, to, subject, content;
+	//getline(fin, time);
+	//temp += time + '\n' + '\n';
+	//getline(fin, from);
+	//temp += from + '\n' + '\n';
+	//getline(fin, to);
+	//temp += to + '\n' + '\n';
+	//getline(fin, subject);
+	//temp += subject + '\n' + '\n';
+	//send(sockfd, temp.c_str(), temp.size(), 0);
+	//recvMessage = recv(sockfd, buffer, strlen(buffer), 0);
+	//buffer[recvMessage] = '\0';
+
+	/*while (fin.get(byte)) {
 		temp += byte;
 	}
-	fin.close();
-	send(sockfd, temp.c_str(), temp.size(), 0);
+	cout << temp << endl;*/
+	
+	//send(sockfd, temp.c_str(), temp.size(), 0);
 }
 // find if user exists
 int check_user() {

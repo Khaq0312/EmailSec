@@ -22,7 +22,7 @@ protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	BOOL CDlgFeature::OnInitDialog();
 	afx_msg void OnPaint();
-
+	void CDlgFeature::OnCancel();
 	DECLARE_MESSAGE_MAP()
 public:
 	HICON m_hIcon;
@@ -43,4 +43,6 @@ public:
 	CEdit m_subject_input;
 	CEdit m_content_input;
 	afx_msg void OnBnClickedSend();
+	CButton sent;
+	afx_msg void OnBnClickedsent();
 };

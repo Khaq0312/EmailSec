@@ -31,6 +31,7 @@ void CDlgFeature::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_TO_INPUT, m_to_input);
 	DDX_Control(pDX, IDC_SUBJECT_INPUT, m_subject_input);
 	DDX_Control(pDX, IDC_CONTENT_INPUT, m_content_input);
+	DDX_Control(pDX, IDC_sent, sent);
 }
 
 
@@ -55,9 +56,17 @@ BEGIN_MESSAGE_MAP(CDlgFeature, CDialogEx)
 	ON_BN_CLICKED(IDC_SEND, &CDlgFeature::OnBnClickedSend)
 	ON_LBN_SELCHANGE(IDC_INBOX, &CDlgFeature::OnLbnSelchangeInbox)
 	//ON_EN_CHANGE(IDC_CONTENT_INPUT, &CDlgFeature::OnEnChangeContentInput)
+	ON_COMMAND(IDCANCEL, &CDlgFeature::OnCancel)
+	ON_BN_CLICKED(IDC_sent, &CDlgFeature::OnBnClickedsent)
 END_MESSAGE_MAP()
 
 
+void CDlgFeature::OnCancel() {
+	CDialogEx::OnCancel();
+	send(client, "QUIT", 4, 0);
+	closesocket(client);
+
+}
 void CDlgFeature::OnPaint()
 {
 	CPaintDC dc(this); // device context for painting
@@ -181,11 +190,11 @@ void CDlgFeature::OnBnClickedIbxView()
 			send(client, "OK", 2, 0);
 			std::string file_name_temp = std::string(buffer);
 
-			recvMessage = recv(client, buffer, BUF_SIZE, 0);
+			/*recvMessage = recv(client, buffer, BUF_SIZE, 0);
 			buffer[recvMessage] = '\0';
 			send(client, "OK", 2, 0);
-			std::string name_displayed_temp = std::string(buffer);
-		
+			std::string name_displayed_temp = std::string(buffer);*/
+			std::string name_displayed_temp = file_name_temp;
 
 			users.push_back( { file_name_temp, name_displayed_temp });
 			/*CString str(buffer);
@@ -309,33 +318,206 @@ void CDlgFeature::OnBnClickedSend()
 				if (sec.length() == 1)
 					sec = '0' + sec;
 				std::string time = std::to_string(localTime.tm_year + 1900) + "/"
-					+ month + "/" + day	+ " "+ hour + ":" + min + ":" + sec ;
+					+ month + "/" + day + " " + hour + ":" + min + ":" + sec;
 
-				std::string title = time + "\nFrom: " + std::string(CT2A(username)) 
-										+ "\nTo: " + to_user + "\nSubject: " + subject 
-										+ "\nContent: " + content;
+				std::string header = time + "\nFrom: " + std::string(CT2A(username))
+					+ "\nTo: " + to_user + "\nSubject: " + subject;
+				std::string body = "\nContent: " + content;
+
+
 				// Data
 				send(client, "DATA", 4, 0);
 				recvMessage = recv(client, buffer, BUF_SIZE, 0);
 				buffer[recvMessage] = '\0';
 
-
-				send(client, title.c_str(), strlen(title.c_str()), 0);
+				send(client, header.c_str(), strlen(header.c_str()), 0);
 				recvMessage = recv(client, buffer, BUF_SIZE, 0);
 				buffer[recvMessage] = '\0';
 
-				/*data = time + '\n' + data;
-				send(client, data.c_str(), strlen(data.c_str()), 0);
+				send(client, body.c_str(), strlen(body.c_str()), 0);
+				recvMessage = recv(client, buffer, BUF_SIZE, 0);
+				buffer[recvMessage] = '\0';
+
+				send(client, to_user.c_str(), strlen(to_user.c_str()), 0);
+				recvMessage = recv(client, buffer, BUF_SIZE, 0);
+				buffer[recvMessage] = '\0';
+				//smtp send
+				/*send(client, title.c_str(), strlen(title.c_str()), 0);
 				recvMessage = recv(client, buffer, BUF_SIZE, 0);
 				buffer[recvMessage] = '\0';*/
 
+				//smime
+				std::string userRoot = std::string(CT2A(username));
+				std::string to_userRoot = to_user;
+				std::string command;
+				std::fstream file;
+				std::string publickey, certificate;
+				char byte;
+
+				//to_user root dir
+				if (!fs::exists(to_userRoot))
+				{
+					fs::create_directory(to_userRoot);  //create folder
+				}
+				if (fs::exists(to_userRoot) && fs::is_directory(to_userRoot))
+				{
+					fs::current_path(to_userRoot);
+					//check if no privateKey created
+					if (!fs::exists("private.key"))
+					{
+						//create private key
+						std::string command = "openssl genrsa -out ./private.key 2048 && "
+							"openssl rsa -in ./private.key -pubout -out ./public.key && "
+							"openssl req -new -out ./myreq.csr -key ./private.key -subj \"/C=AU/ST=Some-State/O=Internet Widgits Pty Ltd\" && "
+							"openssl genrsa -out ./ca.key 2048 && "
+							"openssl req -new -x509 -days 365 -key ./ca.key -out ./ca.crt -subj \"/C=US/ST=State/L=City/O=Organization/OU=Organizational Unit/CN=Common Name\" && "
+							"openssl x509 -req -in ./myreq.csr -CA ./ca.crt -CAkey ./ca.key -CAcreateserial -out ./mycert.crt -days 60 && "
+							"openssl rand -base64 16 > ./aes_key.txt";
+						std::system(command.c_str());
+
+					}
+
+					//get to_user pubkey
+					file.open("mycert.crt", std::ios::in);
+					if (file.is_open()) {
+						while (file.get(byte))
+						{
+							certificate += byte;
+						}
+						file.close();
+					}
+					file.open("public.key", std::ios::in);
+					if (file.is_open()) {
+						while (file.get(byte))
+						{
+							publickey += byte;
+						}
+						file.close();
+					}
+				}
+
+
+				//change to_user_dir to user_dir
+				fs::current_path("..");
+
+				//user_dir
+				if (!fs::exists(userRoot))
+				{
+					//create folder
+					fs::create_directory(userRoot);
+				}
+				if (fs::exists(userRoot) && fs::is_directory(userRoot))
+				{
+					fs::current_path(userRoot);
+					//check if no privateKey created
+					if (!fs::exists("private.key"))
+					{
+						//create private key
+
+						command = "openssl genrsa -out ./private.key 2048 && "
+							"openssl rsa -in ./private.key -pubout -out ./public.key && "
+							"openssl req -new -out ./myreq.csr -key ./private.key -subj \"/C=AU/ST=Some-State/O=Internet Widgits Pty Ltd\" && "
+							"openssl genrsa -out ./ca.key 2048 && "
+							"openssl req -new -x509 -days 365 -key ./ca.key -out ./ca.crt -subj \"/C=US/ST=State/L=City/O=Organization/OU=Organizational Unit/CN=Common Name\" && "
+							"openssl x509 -req -in ./myreq.csr -CA ./ca.crt -CAkey ./ca.key -CAcreateserial -out ./mycert.crt -days 60 && "
+							"openssl rand -base64 16 > ./aes_key.txt";
+						std::system(command.c_str());
+					}
+				}
+
+				file.open("message.txt", std::ios::out);
+				if (file.is_open())
+				{
+					file << header;
+					file << body;
+					file.close();
+				}
+				std::string userCert = to_user + "Cert.crt";
+				file.open(userCert, std::ios::out);
+				if (file.is_open())
+				{
+					file << certificate;
+					file.close();
+				}
+
+				std::string userKey = to_user + "Pub.key";
+				file.open(userKey, std::ios::out);
+				if (file.is_open())
+				{
+					file << publickey;
+					file.close();
+				}
+
+				command =
+					"openssl smime -sign -in ./message.txt -signer ./mycert.crt -inkey ./private.key -out ./signed.sign && "//sign
+					"openssl enc -aes-128-cbc -in signed.sign -out aes_encrypted.enc -pass file:aes_key.txt -base64 && "//enc Signed
+					//"openssl rsautl -encrypt -pubin -inkey ./" + userKey + " -in aes_key.txt -out aes_key.enc &&"
+					"openssl rsautl -encrypt -pubin -inkey "+ userKey + " -in aes_key.txt -out temp.enc &&"//encryptedKey
+					"openssl base64 -in temp.enc -out aes_key.enc &&"
+					"openssl smime -encrypt -in ./aes_encrypted.enc -out ./cipher.enc ./" + userCert;
+				std::system(command.c_str());
+
+				std::string cipher, aeskey;
+				file.open("cipher.enc", std::ios::in);
+				if (file.is_open()) {
+					while (file.get(byte))
+					{
+						cipher += byte;
+					}
+					file.close();
+				}
+				file.open("aes_key.enc", std::ios::in);
+				if (file.is_open()) {
+					while (file.get(byte))
+					{
+						aeskey += byte;
+					}
+					file.close();
+				}
+
+				send(client, cipher.c_str(), strlen(cipher.c_str()), 0);
+				recvMessage = recv(client, buffer, BUF_SIZE, 0);
+				buffer[recvMessage] = '\0';
+
+				send(client, aeskey.c_str(), strlen(aeskey.c_str()), 0);
+				recvMessage = recv(client, buffer, BUF_SIZE, 0);
+				buffer[recvMessage] = '\0';
+
 				MessageBox(_T("Message sent"));
+
+				std::string mycert;
+				file.open("ca.crt", std::ios::in);
+				if (file.is_open())
+				{
+					while (file.get(byte))
+					{
+						mycert += byte;
+					}
+					file.close();
+				}
+
+				fs::create_directory("Sent");
+				fs::current_path("Sent");
+
+
+				fs::current_path("..");
+				fs::current_path(to_userRoot);
+				file.open(userRoot + "Cert.crt", std::ios::out);
+				if (file.is_open())
+				{
+					file << mycert;
+					file.close();
+				}
 				sentSuccessfully = true;
+
+				fs::current_path("..");
 
 				// Reset interface fields
 				m_to_input.SetWindowTextW(_T(""));
 				m_subject_input.SetWindowTextW(_T(""));
 				m_content_input.SetWindowTextW(_T(""));
+
+
 			}
 			else
 			{
@@ -353,4 +535,10 @@ void CDlgFeature::OnBnClickedSend()
 			}
 		}
 	}
+}
+
+
+void CDlgFeature::OnBnClickedsent()
+{
+	// TODO: Add your control notification handler code here
 }

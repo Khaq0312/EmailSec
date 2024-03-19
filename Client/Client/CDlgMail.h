@@ -20,6 +20,7 @@ public:
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	BOOL CDlgMail::OnInitDialog();
+	void CDlgMail::OnCancel();
 	DECLARE_MESSAGE_MAP()
 public:
 	CStatic m_content;

@@ -7,7 +7,7 @@
 #define PORT "25"  // use port 25, need root privilege
 #define MAX_CLIENTS 32
 #define MAX_RCPT_USR 50
-#define BUF_SIZE 1024
+#define BUF_SIZE 8192
 #define DEFAULT_PORT 25
 #define MAX_BUFFER_SIZE 50
 // Next default values for new objects
