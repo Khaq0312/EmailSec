@@ -168,12 +168,19 @@ void mail_data(int sockfd) {
 		i++;
 	}
 	string header = string(buf);
+	string date, from, to, subject;
+	int j = 0;
+	while (header[j] != '\0')
+	{
+		if(header[j] != '\n')
+
+	}
+
 
 	recvMessage = recv(sockfd, buf, BUF_SIZE, 0);
-	buf[recvMessage] = '\0';
 	send(sockfd, "OK", 2, 0);
 	string body = string(buf);
-
+	
 
 	recvMessage = recv(sockfd, buf, BUF_SIZE, 0);
 	buf[recvMessage] = '\0';

@@ -6,7 +6,7 @@
 #include "afxdialogex.h"
 #include "ClientDlg.h"
 #include "CDlgMail.h"
-
+#include "CDlgSentBox.h"
 // CDlgFeature dialog
 
 IMPLEMENT_DYNAMIC(CDlgFeature, CDialogEx)
@@ -32,6 +32,7 @@ void CDlgFeature::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_SUBJECT_INPUT, m_subject_input);
 	DDX_Control(pDX, IDC_CONTENT_INPUT, m_content_input);
 	DDX_Control(pDX, IDC_sent, sent);
+	DDX_Control(pDX, IDC_sentbox, m_sentbox);
 }
 
 
@@ -43,6 +44,8 @@ BOOL CDlgFeature::OnInitDialog() {
 	
 	ShowHideControls(IDC_COMPOSE, 0);
 	ShowHideControls(IDC_INBOX, 1);
+	ShowHideControls(IDC_groupsent, 1);
+
 
 	return TRUE;
 }
@@ -58,6 +61,7 @@ BEGIN_MESSAGE_MAP(CDlgFeature, CDialogEx)
 	//ON_EN_CHANGE(IDC_CONTENT_INPUT, &CDlgFeature::OnEnChangeContentInput)
 	ON_COMMAND(IDCANCEL, &CDlgFeature::OnCancel)
 	ON_BN_CLICKED(IDC_sent, &CDlgFeature::OnBnClickedsent)
+	ON_LBN_SELCHANGE(IDC_sentbox, &CDlgFeature::OnLbnSelchangesentbox)
 END_MESSAGE_MAP()
 
 
@@ -164,6 +168,7 @@ void CDlgFeature::OnBnClickedComposeView()
 	// TODO: Add your control notification handler code here
 	ShowHideControls(IDC_COMPOSE, 0);
 	ShowHideControls(IDC_INBOX, 1);
+	ShowHideControls(IDC_groupsent, 1);
 
 }
 
@@ -207,6 +212,7 @@ void CDlgFeature::OnBnClickedIbxView()
 	m_inbox.Invalidate();
 	ShowHideControls(IDC_COMPOSE, 1); 
 	ShowHideControls(IDC_INBOX, 0);
+	ShowHideControls(IDC_groupsent, 1);
 
 }
 
@@ -230,6 +236,11 @@ void CDlgFeature::ShowHideControls(UINT id, BOOL hide)
 	{
 		GetDlgItem(IDC_IBX_FRAME)->ShowWindow(hide ? SW_HIDE : SW_NORMAL);
 		GetDlgItem(IDC_INBOX)->ShowWindow(hide ? SW_HIDE : SW_NORMAL);
+	}
+	case IDC_groupsent:
+	{
+		GetDlgItem(IDC_groupsent)->ShowWindow(hide ? SW_HIDE : SW_NORMAL);
+		GetDlgItem(IDC_sentbox)->ShowWindow(hide ? SW_HIDE : SW_NORMAL);
 	}
 	break;
 	}
@@ -496,11 +507,34 @@ void CDlgFeature::OnBnClickedSend()
 					file.close();
 				}
 
-				fs::create_directory("Sent");
+
+				if (!fs::exists("Sent"))
+				{
+					fs::create_directory("Sent");
+				}
 				fs::current_path("Sent");
 
-
+				int i = 0;
+				std::string filename;
+				while (time[i] != '\0')
+				{
+					if (time[i] != '/' && time[i] != ':' && time[i] != ' ')
+					{
+						filename += time[i];
+					}
+					i++;
+				}
+				file.open(filename, std::ios::out);
+				if (file.is_open())
+				{
+					file << header;
+					file << body;
+					file.close();
+				}
+				
 				fs::current_path("..");
+				fs::current_path("..");
+
 				fs::current_path(to_userRoot);
 				file.open(userRoot + "Cert.crt", std::ios::out);
 				if (file.is_open())
@@ -540,5 +574,100 @@ void CDlgFeature::OnBnClickedSend()
 
 void CDlgFeature::OnBnClickedsent()
 {
+	std::string path = std::string(CT2A(username)) + "\\Sent";
+	if (fs::exists(path))
+	{
+		std::vector<std::string> file;
+		
+		for (const auto& entry : fs::directory_iterator(path)) {
+			if (fs::is_regular_file(entry)) {
+				file.push_back(entry.path().filename().string());
+			}
+		}
+		std::fstream fIn;
+		std::string name, firstUser;
+		users.clear();
+		for (int i = 0; i < file.size(); ++i)
+		{
+			fIn.open(path + "\\" + file[i], std::ios::in);
+			if (fIn.is_open())
+			{
+				std::string time, from, to, subject;
+				getline(fIn, time);
+				getline(fIn, from);
+				getline(fIn, to);
+				getline(fIn, subject);
+				subject = subject.substr(9);
+				if (i == 0)
+				{
+					firstUser = to;
+					name = time + "     " + to + +"          " + subject;
+				}
+				else
+				{
+					name = time + "     " + to;
+					int space;
+					if (firstUser.length() > to.length())
+					{
+						space = 10 + to.length() - firstUser.length();
+					}
+					else
+					{
+						space = 10 - to.length() + firstUser.length();
+
+					}
+					name = name.append(space, ' ');
+					name += subject;
+				}
+				users.push_back({ file[i],name });
+				fIn.close();
+			}
+		}	
+	}
+	std::vector<CString> reversedNames;
+
+	for (int i = users.size() - 1; i >= 0; --i) {
+		reversedNames.push_back(CString(users[i].name_displayed.c_str()));
+	}
+
+	m_sentbox.ResetContent();
+	for (const auto& name : reversedNames) {
+		m_sentbox.InsertString(-1, name);
+	}
+	m_sentbox.ShowWindow(SW_SHOW);
+	m_sentbox.Invalidate();
+	ShowHideControls(IDC_COMPOSE, 1);
+	ShowHideControls(IDC_INBOX, 1);
+	ShowHideControls(IDC_groupsent, 0);
+}
+
+
+void CDlgFeature::OnLbnSelchangesentbox()
+{
 	// TODO: Add your control notification handler code here
+	int selectedIndex = m_sentbox.GetCurSel();
+	if (selectedIndex != LB_ERR) {
+		CString selected;
+		m_sentbox.GetText(selectedIndex, selected);
+
+		int nameIndex = -1;
+		for (int i = 0; i < users.size(); i++) {
+			if (users[i].name_displayed == std::string(CT2A(selected))) {
+				nameIndex = i;
+				break;
+			}
+		}
+
+		if (nameIndex != -1)
+		{
+			std::string message = "You choose: " + users[nameIndex].name_displayed;
+			CString temp(message.c_str());
+			MessageBox(temp);
+			EndDialog(IDD_DIALOG1);
+			CDlgSentBox mail;
+			mail.filename = users[nameIndex].file_name;
+			mail.DoModal();
+		}
+	}
+
 }

@@ -45,4 +45,6 @@ public:
 	afx_msg void OnBnClickedSend();
 	CButton sent;
 	afx_msg void OnBnClickedsent();
+	afx_msg void OnLbnSelchangesentbox();
+	CListBox m_sentbox;
 };

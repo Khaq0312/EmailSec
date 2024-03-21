@@ -10,12 +10,14 @@
 #define IDR_MAINFRAME                   128
 #define IDD_DIALOG1                     130
 #define IDD_DIALOG2                     132
+#define IDD_DIALOG3                     134
 #define IDC_USN                         1000
 #define IDC_PSW                         1001
 #define IDC_LOGIN                       1002
 #define IDC_COMPOSE                     1003
 #define IDC_LOGOUT                      1004
 #define IDC_LIST1                       1005
+#define IDC_sentbox                     1005
 #define IDC_COMPOSE_VIEW                1006
 #define IDC_IBX_VIEW                    1007
 #define IDC_INBOX                       1008
@@ -29,17 +31,17 @@
 #define IDC_SUBJECT                     1016
 #define IDC_CONTENT                     1017
 #define IDC_IBX_FRAME                   1018
-#define IDC_BUTTON2                     1021
 #define IDC_sent                        1021
+#define IDC_groupsent                   1022
 #define BUF_SIZE                        8192
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        134
+#define _APS_NEXT_RESOURCE_VALUE        136
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1022
+#define _APS_NEXT_CONTROL_VALUE         1023
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

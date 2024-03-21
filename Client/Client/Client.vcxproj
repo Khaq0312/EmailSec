@@ -189,6 +189,7 @@
   <ItemGroup>
     <ClInclude Include="CDlgFeature.h" />
     <ClInclude Include="CDlgMail.h" />
+    <ClInclude Include="CDlgSentBox.h" />
     <ClInclude Include="Client.h" />
     <ClInclude Include="ClientDlg.h" />
     <ClInclude Include="framework.h" />
@@ -200,6 +201,7 @@
   <ItemGroup>
     <ClCompile Include="CDlgFeature.cpp" />
     <ClCompile Include="CDlgMail.cpp" />
+    <ClCompile Include="CDlgSentBox.cpp" />
     <ClCompile Include="Client.cpp" />
     <ClCompile Include="ClientDlg.cpp" />
     <ClCompile Include="pch.cpp">
