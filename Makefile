@@ -1,7 +1,7 @@
 CC=g++
-CFLAGS=-c -Wall
-LDFLAGS=
-SOURCES=client.cpp function.cpp
+CXXFLAGS=-c -Wall
+LDFLAGS += -ljsoncpp
+SOURCES= client.cpp function.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=main
 
@@ -11,7 +11,8 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
 
 .cpp.o:
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CXXFLAGS) $< -o $@
 
-clean:
+clean:s
 	rm -rf *.o $(EXECUTABLE)
+
