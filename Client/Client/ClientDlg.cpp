@@ -7,7 +7,6 @@
 #include "Client.h"
 #include "ClientDlg.h"
 #include "afxdialogex.h"
-
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif

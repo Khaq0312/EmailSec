@@ -11,6 +11,7 @@ void listmail(int sockfd) {
 	string folder_path = data_dir + string(from_user);
 
 	vector<string> filename;
+	filename.clear();
 	for (const auto& entry : fs::directory_iterator(folder_path)) {
 		if (fs::is_regular_file(entry)) {
 			filename.push_back(entry.path().filename().string());
@@ -34,39 +35,7 @@ void listmail(int sockfd) {
 		send(sockfd, filename[i].c_str(), strlen(filename[i].c_str()), 0);
 		recvMessage = recv(sockfd, buffer, 1024, 0);
 		buffer[recvMessage] = '\0';
-		/*fstream fIn;
-		string path = folder_path + "\\" + filename[i];
-		fIn.open(path, ios::in);
-		if (fIn.is_open()) {
-			string time, from, to, subject;
-			getline(fIn, time);
-			getline(fIn, from);
-			getline(fIn, to);
-			getline(fIn, subject);
 
-
-			int pos = subject.find(":");
-			subject = subject.substr(pos + 1);
-
-			string title = "";
-			string temp = "From: " + string(from_user);
-			if (from == temp)
-			{
-				title = time + "        " + to + "  ";
-				title += subject;
-			}
-			else
-			{
-				title = time + "      " + from + "  ";
-				title += subject;
-			}
-		
-			fIn.close();
-
-			send(sockfd, title.c_str(), title.size(), 0);
-			recvMessage = recv(sockfd, buffer, 1024, 0);
-			buffer[recvMessage] = '\0';
-		}*/
 	}
 }
 
@@ -74,18 +43,60 @@ void listmail(int sockfd) {
 //get mail content
 void retrieve(int sockfd) {
 	char buffer[BUF_SIZE];
+	send(sockfd, "OK", 2, 0);
 	int recvMessage = recv(sockfd, buffer, BUF_SIZE, 0);
 	buffer[recvMessage] = '\0';
 	string filename = string(buffer);
-	string path = data_dir + string(from_user) + "\\" + buffer;
+	string path = ".\\Data\\" + string(from_user) + "\\";
+
+	fs::current_path("Data");
+	fs::current_path(from_user);
+
+	size_t pos = filename.find("_");
+	if (pos != std::string::npos)
+	{
+		string not_sign_file = filename.substr(0,pos);
+
+		string domain = filename.substr(pos + 1);
+		domain = domain.substr(0, domain.length() - 4);
+		string pubDkim = getDkim(domain);
+		int dkim_check = verifyKey(pubDkim, not_sign_file, filename);
+
+		if (dkim_check == 0)
+		{
+			send(sockfd, "SPAM", 4, 0);
+			recvMessage = recv(sockfd, buffer, BUF_SIZE, 0);
+			buffer[recvMessage] = '\0';
+		}
+		else
+		{
+			send(sockfd, "NOT SPAM", 8, 0);
+			recvMessage = recv(sockfd, buffer, BUF_SIZE, 0);
+			buffer[recvMessage] = '\0';
+		}
+		std::remove(filename.c_str());
+		filename = not_sign_file;
+
+	}
+	else //sender receiver are same domain
+	{
+		send(sockfd, "NOT SPAM", 8, 0);
+		recvMessage = recv(sockfd, buffer, BUF_SIZE, 0);
+		buffer[recvMessage] = '\0';
+	}
+	string is_spam = string(buffer);
+	fs::current_path("..");
+	fs::current_path("..");
 
 	fstream file;
+	path += filename;
 	file.open(path, ios::in);
 
 	if (!file.is_open()) {
 		std::cerr << "Error opening file: " << path << std::endl;
 		return;
 	}
+	
 	string cipher, aes_key;
 	char byte;
 	while (file.get(byte))
@@ -93,6 +104,7 @@ void retrieve(int sockfd) {
 		cipher += byte;
 	}
 	file.close();
+	std::remove(path.c_str());
 
 	send(sockfd, cipher.c_str(), strlen(cipher.c_str()), 0);
 	recvMessage = recv(sockfd, buffer, BUF_SIZE, 0);
@@ -112,27 +124,35 @@ void retrieve(int sockfd) {
 	send(sockfd, aes_key.c_str(), strlen(aes_key.c_str()), 0);
 	recvMessage = recv(sockfd, buffer, BUF_SIZE, 0);
 	buffer[recvMessage] = '\0';
-	//string temp = "";
-	//char byte;
-	//string time, from, to, subject, content;
-	//getline(fin, time);
-	//temp += time + '\n' + '\n';
-	//getline(fin, from);
-	//temp += from + '\n' + '\n';
-	//getline(fin, to);
-	//temp += to + '\n' + '\n';
-	//getline(fin, subject);
-	//temp += subject + '\n' + '\n';
-	//send(sockfd, temp.c_str(), temp.size(), 0);
-	//recvMessage = recv(sockfd, buffer, strlen(buffer), 0);
-	//buffer[recvMessage] = '\0';
 
-	/*while (fin.get(byte)) {
-		temp += byte;
+	recvMessage = recv(sockfd, buffer, BUF_SIZE, 0);
+	buffer[recvMessage] = '\0';
+	send(sockfd, "OK", 2, 0);
+	if (pos != std::string::npos)
+	{
+		int spf = checkSPF(string(buffer));
+		if (spf == 0)
+		{
+			send(sockfd, "SPAM", 4, 0);
+			recvMessage = recv(sockfd, buffer, BUF_SIZE, 0);
+			buffer[recvMessage] = '\0';
+		}
+		else
+		{
+			send(sockfd, "NOT SPAM", 8, 0);
+			recvMessage = recv(sockfd, buffer, BUF_SIZE, 0);
+			buffer[recvMessage] = '\0';
+		}
 	}
-	cout << temp << endl;*/
+	else
+	{
+		send(sockfd, "NOT SPAM", 8, 0);
+		recvMessage = recv(sockfd, buffer, BUF_SIZE, 0);
+		buffer[recvMessage] = '\0';
+	}
 	
-	//send(sockfd, temp.c_str(), temp.size(), 0);
+	//delete temp file after retrieve to local
+	std::remove(path.c_str());
 }
 // find if user exists
 int check_user() {

@@ -84,6 +84,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Demo_Server.h" />
+    <ClInclude Include="function.h" />
     <ClInclude Include="message.h" />
     <ClInclude Include="module_mail.h" />
     <ClInclude Include="module_user.h" />
@@ -93,6 +94,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Demo_Server.cpp" />
+    <ClCompile Include="dkim_spf_dmarc.cpp" />
     <ClCompile Include="module_mail.cpp" />
     <ClCompile Include="module_user.cpp" />
     <ClCompile Include="stdafx.cpp">

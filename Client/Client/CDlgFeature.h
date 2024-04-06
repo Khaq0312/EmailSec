@@ -47,4 +47,7 @@ public:
 	afx_msg void OnBnClickedsent();
 	afx_msg void OnLbnSelchangesentbox();
 	CListBox m_sentbox;
+	afx_msg void OnBnClickedSpam();
+	CListBox m_spambox;
+	afx_msg void OnLbnSelchangespambox();
 };

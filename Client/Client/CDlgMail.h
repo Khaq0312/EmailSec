@@ -25,4 +25,6 @@ protected:
 public:
 	CStatic m_content;
 	afx_msg void OnBnClickedBack();
+	std::string file;
+	std::string box_type;
 };

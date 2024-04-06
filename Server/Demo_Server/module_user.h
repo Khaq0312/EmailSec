@@ -4,6 +4,7 @@
 //#define __XSMTP_MODULE_USER_H
 void listmail(int sockfd);
 void retrieve(int sockfd);
+void DELT(int sockfd);
 int check_user();
 void auth(int sockfd);
 int check_name_pass(char* name, char* pass);

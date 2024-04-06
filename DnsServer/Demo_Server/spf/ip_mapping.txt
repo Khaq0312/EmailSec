@@ -1,0 +1,4 @@
+alice@localhost.com 192.168.1.1
+bill@localhost.com 192.168.1.2
+cocain@example.com 172.16.1.1
+david@gmail.com 220.220.220.1

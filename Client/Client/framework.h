@@ -46,6 +46,14 @@
 #include <direct.h>
 #include <filesystem>
 #include <fstream>
+#include <algorithm>
+#include <cstdio>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <array>
+#include "function.h"
+
 namespace fs = std::filesystem;
 #ifdef _UNICODE
 

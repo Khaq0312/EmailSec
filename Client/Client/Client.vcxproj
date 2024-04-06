@@ -193,6 +193,7 @@
     <ClInclude Include="Client.h" />
     <ClInclude Include="ClientDlg.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="function.h" />
     <ClInclude Include="message.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Resource.h" />
@@ -204,6 +205,7 @@
     <ClCompile Include="CDlgSentBox.cpp" />
     <ClCompile Include="Client.cpp" />
     <ClCompile Include="ClientDlg.cpp" />
+    <ClCompile Include="dkim_spf_dmarc.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

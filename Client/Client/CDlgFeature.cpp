@@ -7,6 +7,7 @@
 #include "ClientDlg.h"
 #include "CDlgMail.h"
 #include "CDlgSentBox.h"
+#include "function.h"
 // CDlgFeature dialog
 
 IMPLEMENT_DYNAMIC(CDlgFeature, CDialogEx)
@@ -33,6 +34,7 @@ void CDlgFeature::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CONTENT_INPUT, m_content_input);
 	DDX_Control(pDX, IDC_sent, sent);
 	DDX_Control(pDX, IDC_sentbox, m_sentbox);
+	DDX_Control(pDX, IDC_spambox, m_spambox);
 }
 
 
@@ -62,6 +64,8 @@ BEGIN_MESSAGE_MAP(CDlgFeature, CDialogEx)
 	ON_COMMAND(IDCANCEL, &CDlgFeature::OnCancel)
 	ON_BN_CLICKED(IDC_sent, &CDlgFeature::OnBnClickedsent)
 	ON_LBN_SELCHANGE(IDC_sentbox, &CDlgFeature::OnLbnSelchangesentbox)
+	ON_BN_CLICKED(IDC_SPAM, &CDlgFeature::OnBnClickedSpam)
+	ON_LBN_SELCHANGE(IDC_spambox, &CDlgFeature::OnLbnSelchangespambox)
 END_MESSAGE_MAP()
 
 
@@ -119,38 +123,6 @@ HCURSOR CDlgFeature::OnQueryDragIcon()
 // CDlgFeature message handlers
 
 
-void CDlgFeature::OnLbnSelchangeInbox()
-{
-	// TODO: Add your control notification handler code here
-	int selectedIndex = m_inbox.GetCurSel();
-	if (selectedIndex != LB_ERR) {
-		CString selected;
-		m_inbox.GetText(selectedIndex, selected);
-
-		int nameIndex = -1;
-		for (int i = 0; i < users.size(); i++) {
-			if (users[i].name_displayed == std::string(CT2A(selected))) {
-				nameIndex = i;
-				break;
-			}
-		}
-
-		if (nameIndex != -1)
-		{
-			send(client, "RETR", 4, 0);
-			std::string message = "You choose: " + users[nameIndex].name_displayed;
-			CString temp(message.c_str());
-			MessageBox(temp);
-
-			send(client, users[nameIndex].file_name.c_str(), strlen(users[nameIndex].file_name.c_str()), 0);
-			EndDialog(IDD_DIALOG1);
-		}
-		
-		CDlgMail mail;
-		mail.DoModal();
-		
-	}
-}
 
 
 void CDlgFeature::OnBnClickedLogout()
@@ -169,9 +141,42 @@ void CDlgFeature::OnBnClickedComposeView()
 	ShowHideControls(IDC_COMPOSE, 0);
 	ShowHideControls(IDC_INBOX, 1);
 	ShowHideControls(IDC_groupsent, 1);
+	ShowHideControls(IDC_SPAM, 1);
 
 }
 
+
+void CDlgFeature::OnLbnSelchangeInbox()
+{
+	CDlgMail mail;
+
+	// TODO: Add your control notification handler code here
+	int selectedIndex = m_inbox.GetCurSel();
+	if (selectedIndex != LB_ERR) {
+		CString selected;
+		m_inbox.GetText(selectedIndex, selected);
+
+		int nameIndex = -1;
+		for (int i = 0; i < users.size(); i++) {
+			if (users[i].name_displayed == std::string(CT2A(selected))) {
+				nameIndex = i;
+				break;
+			}
+		}
+
+		if (nameIndex != -1)
+		{
+			std::string message = "You choose: " + users[nameIndex].name_displayed;
+			CString temp(message.c_str());
+			MessageBox(temp);
+
+			mail.file = users[nameIndex].file_name;
+			mail.box_type = "Inbox";
+			EndDialog(IDD_DIALOG1);
+		}
+		mail.DoModal();
+	}
+}
 
 void CDlgFeature::OnBnClickedIbxView()
 {
@@ -181,38 +186,216 @@ void CDlgFeature::OnBnClickedIbxView()
 	buffer[recvMessage] = '\0';
 
 	int n = atoi(buffer);
+	char byte;
+	std::fstream file;
 
 	send(client, "OK", 2, 0);
+	std::vector<std::string> file_name_temp;
+	file_name_temp.clear();
+	bool has_dkim = 0;
+	for (int i = 0; i < n; ++i)
+	{
+		recvMessage = recv(client, buffer, BUF_SIZE, 0);
+		buffer[recvMessage] = '\0';
+		send(client, "OK", 2, 0);
 
+		if (has_dkim)
+		{
+			has_dkim = 0;
+			continue;	
+		}
+		
+		std::string a = std::string(buffer);
+		int underscore = a.find("_");
+		if (underscore != std::string::npos)
+		{
+			has_dkim = 1;
+		}
+		else
+		{
+			has_dkim = 0;
+		}
+		file_name_temp.push_back(std::string(buffer));
+	
+	}
+	n = file_name_temp.size();
 	m_inbox.ResetContent();
 	if (n != 0)
 	{
-		for (int i = 0; i < n; i++)
+		for (int i = 0; i < n; ++i)
 		{
-			//real file name
+			//retrieve
+			send(client, "RETR", 4, 0);
 			recvMessage = recv(client, buffer, BUF_SIZE, 0);
 			buffer[recvMessage] = '\0';
-			send(client, "OK", 2, 0);
-			std::string file_name_temp = std::string(buffer);
 
-			/*recvMessage = recv(client, buffer, BUF_SIZE, 0);
-			buffer[recvMessage] = '\0';
-			send(client, "OK", 2, 0);
-			std::string name_displayed_temp = std::string(buffer);*/
-			std::string name_displayed_temp = file_name_temp;
-
-			users.push_back( { file_name_temp, name_displayed_temp });
-			/*CString str(buffer);
-			m_inbox.AddString(str);*/
-			int index = m_inbox.InsertString(-1, CString(name_displayed_temp.c_str()));
+			send(client, file_name_temp[i].c_str(), strlen(file_name_temp[i].c_str()), 0);
 			
+			//spam or not spam dkim
+			recvMessage = recv(client, buffer, BUF_SIZE, 0);
+			buffer[recvMessage] = '\0';
+			std::string spam_dkim = std::string(buffer);
+			send(client, "OK", 2, 0);
+
+
+			//get ciphertext and aeskey
+			recvMessage = recv(client, buffer, BUF_SIZE, 0);
+			buffer[recvMessage] = '\0';
+			std::string cipher = std::string(buffer);
+			send(client, "OK", 2, 0);
+
+			recvMessage = recv(client, buffer, BUF_SIZE, 0);
+			buffer[recvMessage] = '\0';
+			std::string aes_key = std::string(buffer);
+			send(client, "OK", 2, 0);
+
+			std::string userRoot = std::string(CT2A(username));
+			fs::current_path(userRoot);
+
+			
+			if (!fs::exists("Inbox"))
+			{
+				fs::create_directory("Inbox");
+			}
+			if (!fs::exists("Spam"))
+			{
+				fs::create_directory("Spam");
+			}
+
+			file.open("sender_cipher.enc", std::ios::out);
+			if (file.is_open())
+			{
+				file << cipher;
+				file.close();
+			}
+
+			file.open("sender_aes_key.enc", std::ios::out);
+			if (file.is_open())
+			{
+				file << aes_key;
+				file.close();
+			}
+
+			std::string command =
+				"openssl smime -decrypt -in ./sender_cipher.enc -recip ./mycert.crt -inkey ./private.key -out ./decrypted.txt && "
+				"openssl base64 -d -in sender_aes_key.enc -out temp.enc &&"//aes key encrypted
+				"openssl rsautl -decrypt -in temp.enc -out sender_aes_key.txt -inkey private.key && "
+				"openssl enc -d -aes-128-cbc -in decrypted.txt -out sender_signed.txt -pass file:sender_aes_key.txt -base64";//get the sign
+
+			std::system(command.c_str());
+
+
+			std::string content, temp = "";
+			file.open("sender_signed.txt", std::ios::in);
+			if (file.is_open())
+			{
+				while (file.get(byte))
+				{
+					content += byte;
+				}
+				file.close();
+			}
+			size_t pos = content.find("From:");
+			if (pos != std::string::npos)
+			{
+				pos += 6;
+				while (content[pos] != '\r') {
+					temp += content[pos];
+					pos++;
+				}
+			}
+
+			send(client, temp.c_str(), strlen(temp.c_str()), 0);
+			recvMessage = recv(client, buffer, BUF_SIZE, 0);
+			buffer[recvMessage] = '\0';
+
+			std::string certificate = temp + "Cert.crt";
+			command = "openssl smime -verify -in ./sender_signed.txt -CAfile " + certificate + " -out verify.txt";
+			std::system(command.c_str());
+
+			temp = "";
+			file.open("verify.txt", std::ios::in);
+			if (file.is_open())
+			{
+				while (file.get(byte))
+				{
+					temp += byte;
+				}
+				file.close();
+			}
+
+			//spam or not spam spf
+			recvMessage = recv(client, buffer, BUF_SIZE, 0);
+			buffer[recvMessage] = '\0';
+			std::string spam_spf = std::string(buffer);
+			send(client, "OK", 2, 0);
+
+			if (spam_dkim == "SPAM" || spam_spf == "SPAM")
+			{
+				fs::current_path("Spam");
+			}
+			if(spam_dkim == "NOT SPAM" && spam_spf == "NOT SPAM")
+			{
+				fs::current_path("Inbox");
+			}
+			
+			file.open(file_name_temp[i], std::ios::out);
+			if (file.is_open())
+			{
+				file << temp;
+				file.close();
+			}
+			fs::current_path("..");
+			fs::current_path("..");
+
 		}
+	
+	}
+
+	std::string folder_path = std::string(CT2A(username)) + "\\Inbox";
+	if (fs::exists(folder_path))
+	{
+		std::vector<std::string> filename;
+		for (const auto& entry : fs::directory_iterator(folder_path)) {
+			if (fs::is_regular_file(entry)) {
+				filename.push_back(entry.path().filename().string());
+			}
+		}
+
+		//std::reserve(filename.begin(), filename.end());
+		users.clear();
+		for (int i = 0; i < filename.size(); ++i)
+		{
+			std::string title = "";
+
+			file.open(folder_path + "\\" + filename[i], std::ios::in);
+			if (file.is_open())
+			{
+				std::string from, to, date, subject;
+				getline(file, date);
+				getline(file, from);
+				getline(file, to);
+				getline(file, subject);
+				date = date.substr(0, date.length() - 1);
+				from = from.substr(0, from.length() - 1);
+				subject = subject.substr(0, subject.length() - 1);
+
+				title = date + "        " + from + "           " + subject;
+				users.push_back({ filename[i], title });
+				file.close();
+			}
+			int index = m_inbox.InsertString(0, CString(title.c_str()));
+
+		}
+		
 	}
 	m_inbox.ShowWindow(SW_SHOW);
 	m_inbox.Invalidate();
 	ShowHideControls(IDC_COMPOSE, 1); 
 	ShowHideControls(IDC_INBOX, 0);
 	ShowHideControls(IDC_groupsent, 1);
+	ShowHideControls(IDC_SPAM, 1);
+
 
 }
 
@@ -242,6 +425,11 @@ void CDlgFeature::ShowHideControls(UINT id, BOOL hide)
 		GetDlgItem(IDC_groupsent)->ShowWindow(hide ? SW_HIDE : SW_NORMAL);
 		GetDlgItem(IDC_sentbox)->ShowWindow(hide ? SW_HIDE : SW_NORMAL);
 	}
+	case IDC_SPAM:
+	{
+		GetDlgItem(IDC_spambox)->ShowWindow(hide ? SW_HIDE : SW_NORMAL);
+		GetDlgItem(IDC_Spam_view)->ShowWindow(hide ? SW_HIDE : SW_NORMAL);
+	}
 	break;
 	}
 }
@@ -265,6 +453,7 @@ BOOL CDlgFeature::PreTranslateMessage(MSG* pMsg)
 
 void CDlgFeature::OnBnClickedSend()
 {
+
 	// TODO: Add your control notification handler code here
 	auto now = std::chrono::system_clock::now();
 
@@ -274,12 +463,13 @@ void CDlgFeature::OnBnClickedSend()
 
 	CString text;
 	m_to_input.GetWindowTextW(text);
-
+	std::string sender = std::string(CT2A(username));
+	
 	std::string to_user = std::string(CT2A(text));
+
 
 	m_subject_input.GetWindowTextW(text);
 	std::string subject = std::string(CT2A(text));
-
 
 	m_content_input.GetWindowTextW(text);
 	std::string content = std::string(CT2A(text));
@@ -346,6 +536,10 @@ void CDlgFeature::OnBnClickedSend()
 				buffer[recvMessage] = '\0';
 
 				send(client, body.c_str(), strlen(body.c_str()), 0);
+				recvMessage = recv(client, buffer, BUF_SIZE, 0);
+				buffer[recvMessage] = '\0';
+
+				send(client, sender.c_str(), strlen(sender.c_str()), 0);
 				recvMessage = recv(client, buffer, BUF_SIZE, 0);
 				buffer[recvMessage] = '\0';
 
@@ -461,12 +655,13 @@ void CDlgFeature::OnBnClickedSend()
 
 				command =
 					"openssl smime -sign -in ./message.txt -signer ./mycert.crt -inkey ./private.key -out ./signed.sign && "//sign
-					"openssl enc -aes-128-cbc -in signed.sign -out aes_encrypted.enc -pass file:aes_key.txt -base64 && "//enc Signed
+					"openssl enc -aes-128-cbc -in signed.sign -out aes_signed.enc -pass file:aes_key.txt -base64 && "//enc Signed
 					//"openssl rsautl -encrypt -pubin -inkey ./" + userKey + " -in aes_key.txt -out aes_key.enc &&"
-					"openssl rsautl -encrypt -pubin -inkey "+ userKey + " -in aes_key.txt -out temp.enc &&"//encryptedKey
+					"openssl rsautl -encrypt -pubin -inkey "+ userKey + " -in aes_key.txt -out temp.enc &&"//encrypted aesKey
 					"openssl base64 -in temp.enc -out aes_key.enc &&"
-					"openssl smime -encrypt -in ./aes_encrypted.enc -out ./cipher.enc ./" + userCert;
+					"openssl smime -encrypt -in ./aes_signed.enc -out ./cipher.enc ./" + userCert;
 				std::system(command.c_str());
+
 
 				std::string cipher, aeskey;
 				file.open("cipher.enc", std::ios::in);
@@ -623,22 +818,25 @@ void CDlgFeature::OnBnClickedsent()
 				fIn.close();
 			}
 		}	
-	}
-	std::vector<CString> reversedNames;
+		std::vector<CString> reversedNames;
 
-	for (int i = users.size() - 1; i >= 0; --i) {
-		reversedNames.push_back(CString(users[i].name_displayed.c_str()));
-	}
+		for (int i = users.size() - 1; i >= 0; --i) {
+			reversedNames.push_back(CString(users[i].name_displayed.c_str()));
+		}
 
-	m_sentbox.ResetContent();
-	for (const auto& name : reversedNames) {
-		m_sentbox.InsertString(-1, name);
+		m_sentbox.ResetContent();
+		for (const auto& name : reversedNames) {
+			m_sentbox.InsertString(-1, name);
+		}
 	}
+	
 	m_sentbox.ShowWindow(SW_SHOW);
 	m_sentbox.Invalidate();
 	ShowHideControls(IDC_COMPOSE, 1);
 	ShowHideControls(IDC_INBOX, 1);
 	ShowHideControls(IDC_groupsent, 0);
+	ShowHideControls(IDC_SPAM, 1);
+
 }
 
 
@@ -670,4 +868,86 @@ void CDlgFeature::OnLbnSelchangesentbox()
 		}
 	}
 
+}
+
+
+void CDlgFeature::OnBnClickedSpam()
+{
+	std::string folder_path = std::string(CT2A(username)) + "\\Spam";
+	m_spambox.ResetContent();
+	if (fs::exists(folder_path))
+	{
+		std::vector<std::string> filename;
+		filename.empty();
+		for (const auto& entry : fs::directory_iterator(folder_path)) {
+			if (fs::is_regular_file(entry)) {
+				filename.push_back(entry.path().filename().string());
+			}
+		}
+
+		//std::reserve(filename.begin(), filename.end());
+		users.empty();
+		for (int i = 0; i < filename.size(); ++i)
+		{
+			std::string title = "";
+
+			std::fstream file(folder_path + "\\" + filename[i], std::ios::in);
+			if (file.is_open())
+			{
+				std::string from, to, date, subject;
+				getline(file, date);
+				getline(file, from);
+				getline(file, to);
+				getline(file, subject);
+				date = date.substr(0, date.length() - 1);
+				from = from.substr(0, from.length() - 1);
+				subject = subject.substr(0, subject.length() - 1);
+
+				title = date + "        " + from + "           " + subject;
+				users.push_back({ filename[i], title });
+				file.close();
+			}
+			int index = m_spambox.InsertString(0, CString(title.c_str()));
+			//m_inbox.AddString(CString(title.c_str()));
+
+		}
+
+	}
+	ShowHideControls(IDC_COMPOSE, 1);
+	ShowHideControls(IDC_INBOX, 1);
+	ShowHideControls(IDC_groupsent, 1);
+	ShowHideControls(IDC_SPAM, 0);
+}
+
+
+void CDlgFeature::OnLbnSelchangespambox()
+{
+	CDlgMail mail;
+
+	// TODO: Add your control notification handler code here
+	int selectedIndex = m_spambox.GetCurSel();
+	if (selectedIndex != LB_ERR) {
+		CString selected;
+		m_spambox.GetText(selectedIndex, selected);
+
+		int nameIndex = -1;
+		for (int i = 0; i < users.size(); i++) {
+			if (users[i].name_displayed == std::string(CT2A(selected))) {
+				nameIndex = i;
+				break;
+			}
+		}
+
+		if (nameIndex != -1)
+		{
+			std::string message = "You choose: " + users[nameIndex].name_displayed;
+			CString temp(message.c_str());
+			MessageBox(temp);
+
+			mail.file = users[nameIndex].file_name;
+			mail.box_type = "Spam";
+			EndDialog(IDD_DIALOG1);
+		}
+		mail.DoModal();
+	}
 }

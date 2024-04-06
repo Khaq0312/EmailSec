@@ -45,6 +45,9 @@
     <ClInclude Include="CDlgSentBox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="function.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Client.cpp">
@@ -63,6 +66,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CDlgSentBox.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dkim_spf_dmarc.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

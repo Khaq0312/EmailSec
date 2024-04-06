@@ -45,7 +45,8 @@
 #include <filesystem>
 #include <vector>
 #include <algorithm>
-
+#include <cstdio>
+#include "function.h"
 using namespace std;
 namespace fs = std::filesystem;
 
