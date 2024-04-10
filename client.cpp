@@ -60,7 +60,8 @@ int main()
         return 1;
     }
 
-    recvMessage = read(sockfd1, buffer, BUF_SIZE);
+    
+    int recvMessage = read(sockfd1, buffer, BUF_SIZE);
     buffer[recvMessage] = '\0';
 
     recvMessage = read(sockfd2, buffer, BUF_SIZE);
@@ -81,12 +82,12 @@ int main()
     time_t lastTime = 0;
     while(1)
     {
-        time_t currentTime = time(nullptr);
-        if(currentTime - lastTime >= autoload)
-        {
-            //pop3 list
-            lastTime = currentTime;
-        }
+        // time_t currentTime = time(nullptr);
+        // if(currentTime - lastTime >= autoload)
+        // {
+        //     //pop3 list
+        //     lastTime = currentTime;
+        // }
         
         menu();
         cout<<"Ban chon: ";

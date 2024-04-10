@@ -1,6 +1,6 @@
 CC=g++
 CXXFLAGS=-c -Wall
-LDFLAGS += -ljsoncpp
+LDFLAGS += -ljsoncpp -lPocoNet -lPocoFoundation
 SOURCES= client.cpp function.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=main
@@ -8,7 +8,7 @@ EXECUTABLE=main
 all: $(SOURCES) $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
+	$(CC) $(OBJECTS) -o $@ $(LDFLAGS)
 
 .cpp.o:
 	$(CC) $(CXXFLAGS) $< -o $@
